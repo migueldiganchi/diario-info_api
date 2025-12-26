@@ -1,0 +1,16 @@
+node_modules/
+
+# dotenv environment variables file
+.env
+
+# NLP models
+*.nlp
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# Nuxt generate
+dist

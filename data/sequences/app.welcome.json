@@ -1,0 +1,36 @@
+{
+  "key": "app.welcome",
+  "interactions": [
+    {
+      "from": "bot",
+      "writingTime": 2136,
+      "message": "Hola {{ nickname }}, mi nombre es León. Soy representante Virtual de Vendedor QR, y vine aquí para guiarte a comercializar productos y servicios de manera inteligente."
+    },
+    {
+      "writingTime": 1239,
+      "from": "bot",
+      "message": "Nos dedicamos a operaciones de compra y venta de los mercados más redituables"
+    },
+    {
+      "writingTime": 3699,
+      "from": "bot",
+      "message": "¿Te interesa utilizar nuestros servicios?",
+      "answerKey": "user_wants_to_know_about_our_services",
+      "answerType": "uni-selector",
+      "answerOptions": [
+        {
+          "answerOptionText": "Adelante",
+          "answerOptionValue": "app.menu"
+        },
+        {
+          "answerOptionText": "En otro momento",
+          "answerOptionValue": "app.later"
+        },
+        {
+          "answerOptionText": "Mejor no",
+          "answerOptionValue": "app.bye"
+        }
+      ]
+    }
+  ]
+}

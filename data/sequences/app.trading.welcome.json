@@ -1,0 +1,19 @@
+{
+  "app.trading": [
+    {
+      "writingTime": 3006,
+      "message": "Hola! Mi nombre es León, soy el representante virtual de DiarioInfo-API, Academia Virtual de Trading"
+    },
+    {
+      "writingTime": 3993,
+      "message": "Estoy aquí para orientarte en todo lo que necesites para aprender Trading y llevar tu vida al siguiente nivel."
+    },
+    {
+      "answerKey": "user_nick_name",
+      "operator": "==",
+      "value": "''",
+      "then_SequenceKey": "app.trading.nickname",
+      "else_SequenceKey": "app.trading.menu"
+    }
+  ]
+}

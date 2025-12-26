@@ -1,0 +1,22 @@
+{
+  "questions": [
+    "hola",
+    "Hola",
+    "Hola!",
+    "¡Hola!",
+    "como va?",
+    "como estas?",
+    "Que tal",
+    "hello",
+    "Hi",
+    "buenas"
+  ],
+  "answers": [
+    "¡Hola!",
+    "¡Es un gusto saludarte!",
+    "¡Hola! Ojalá estes muy bien",
+    "Saludos human@",
+    "¡Que tal human@!",
+    "¿Como estas human@?"
+  ]
+}

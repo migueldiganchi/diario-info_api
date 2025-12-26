@@ -1,0 +1,48 @@
+{
+  "app.welcome.later": [
+    {
+      "answerKey": 1,
+      "from": "bot",
+      "writingTime": 999,
+      "message": "Seguramente te estaremos visitando más adelante."
+    },
+    {
+      "answerKey": 2,
+      "writingTime": 3699,
+      "from": "bot",
+      "message": "Muchas gracias por ocupar nuestros servicios"
+    },
+    {
+      "writingTime": 369,
+      "from": "bot",
+      "message": "¿En cuanto tiempo te gustaría que te contactemos?",
+      "answerKey": "later_delay_days",
+      "answerType": "uni-selector",
+      "answerOptions": [
+        {
+          "answerOptionValue": "1",
+          "answerOptionText": "Mañana",
+          "toSequenceKey": "app.menu"
+        },
+        {
+          "answerOptionValue": "3",
+          "answerOptionText": "En 3 días"
+        },
+        {
+          "answerOptionValue": "7",
+          "answerOptionText": "En 1 semana"
+        }
+      ]
+    },
+    {
+      "writingTime": 999,
+      "from": "bot",
+      "message": "Genial {nickname}. Te escribiremos en {later_delay_days} días"
+    },
+    {
+      "writingTime": 666,
+      "from": "bot",
+      "message": "¡Que estes muy bien!"
+    }
+  ]
+}

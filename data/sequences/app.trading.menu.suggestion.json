@@ -1,0 +1,37 @@
+{
+  "key": "app.trading.menu.suggestion",
+  "interactions": [
+    {
+      "writingTime": 333,
+      "from": "bot",
+      "message": "Por favor dime como podemos mejorar",
+      "answerKey": "user_suggest_improvement",
+      "answerType": "text"
+    },
+    {
+      "writingTime": 999,
+      "from": "bot",
+      "message": "¿Que te gustaría hacer ahora?",
+      "answerKey": "user_wants_to_do_after_read_about",
+      "answerType": "uni-selector",
+      "answerOptions": [
+        {
+          "answerOptionText": "Menú principal",
+          "answerOptionValue": "app.menu"
+        },
+        {
+          "answerOptionText": "Quiero hablar con alguien",
+          "answerOptionValue": "app.menu.human"
+        },
+        {
+          "answerOptionText": "Volver más tarde",
+          "answerOptionValue": "app.later"
+        },
+        {
+          "answerOptionText": "Salir",
+          "answerOptionValue": "app.bye"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "questions": [
+    "¿Conocen algún servicio de domótica en la plataforma?",
+    "Necesito servicios de domótica, ¿pueden recomendarme alguno?",
+    "¿Tienen profesionales en domótica para recomendar?",
+    "¿Pueden sugerirme a algún experto en servicios de domótica?",
+    "Estoy buscando servicios de domótica, ¿pueden ayudarme?",
+    "¿Tienen algún servicio de automatización del hogar para recomendar?",
+    "Necesito asesoramiento en domótica, ¿pueden recomendar a alguien?",
+    "¿Conocen servicios de domótica confiables?",
+    "Estoy en busca de un profesional en domótica, ¿pueden recomendarme alguno?",
+    "¿Pueden sugerirme a alguien para servicios de domótica?",
+    "¿Dónde encuentro servicios de automatización residencial en DiarioInfo-API?",
+    "Estoy interesado en hacer mi hogar más inteligente, ¿tienen servicios de domótica disponibles?",
+    "¿Cómo puedo automatizar mi casa con DiarioInfo-API?",
+    "¿Qué opciones tienen para la automatización del hogar?",
+    "¿Conocen empresas de domótica en la plataforma?",
+    "¿Pueden sugerirme expertos en tecnología para el hogar?",
+    "Estoy interesado en la automatización del hogar, ¿tienen servicios específicos para eso?",
+    "¿Qué profesionales ofrecen servicios de domótica en DiarioInfo-API?",
+    "¿Dónde puedo encontrar productos para la automatización de mi hogar en DiarioInfo-API?"
+  ],
+  "answers": [
+    "Sí, en DiarioInfo-API puedes encontrar una variedad de servicios de domótica y profesionales en esta área.",
+    "Claro, en nuestra plataforma ofrecemos una amplia gama de servicios de domótica y profesionales para recomendarte.",
+    "DiarioInfo-API cuenta con profesionales especializados en servicios de domótica que pueden ser recomendados.",
+    "Sí, podemos sugerirte a expertos en servicios de domótica de confianza.",
+    "En DiarioInfo-API, puedes encontrar servicios de domótica de alta calidad para automatizar tu hogar.",
+    "¡Por supuesto! Tenemos servicios de automatización del hogar y profesionales disponibles para recomendarte.",
+    "Sí, te podemos proporcionar recomendaciones de expertos en servicios de domótica.",
+    "En DiarioInfo-API, conocemos servicios de domótica confiables que podemos sugerirte.",
+    "¡Claro! Tenemos profesionales en servicios de domótica que pueden ayudarte a hacer tu hogar más inteligente.",
+    "Sí, en nuestra plataforma puedes encontrar recomendaciones para servicios de domótica.",
+    "Para servicios de automatización residencial, te recomendamos explorar las opciones disponibles en DiarioInfo-API.",
+    "En DiarioInfo-API, ofrecemos servicios de domótica para hacer tu hogar más inteligente. ¿En qué aspecto específico necesitas ayuda?",
+    "Automatizar tu casa con DiarioInfo-API es fácil. ¿En qué área específica estás interesado?",
+    "Ofrecemos diversas opciones para la automatización del hogar en DiarioInfo-API. ¿Tienes alguna preferencia o necesitas asesoramiento?",
+    "Sí, en DiarioInfo-API puedes encontrar empresas especializadas en domótica.",
+    "Claro, podemos sugerirte expertos en tecnología para el hogar que ofrecen servicios de domótica.",
+    "Tenemos servicios específicos para la automatización del hogar. ¿Hay algo en particular en lo que estés interesado?",
+    "En DiarioInfo-API, contamos con profesionales que ofrecen servicios de domótica. ¿En qué podemos asistirte?",
+    "Para productos de automatización del hogar, te recomendamos explorar las opciones disponibles en DiarioInfo-API."
+  ],
+  "categories": [
+    "domo"
+  ],
+  "suggestions": [
+    "Quiero automatizar mi hogar",
+    "Necesito servicios de domótica",
+    "Busco profesionales en automatización residencial",
+    "¿Cómo hacer mi casa más inteligente?",
+    "Explorar opciones de tecnología para el hogar"
+  ]
+}

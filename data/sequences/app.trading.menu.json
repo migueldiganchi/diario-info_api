@@ -1,0 +1,35 @@
+{
+  "app.trading": [
+    {
+      "writingTime": 999,
+      "message": "{user_nick_name}, Estas en el menú principal"
+    },
+    {
+      "writingTime": 1998,
+      "message": "Por favor elige una de las siguientes opciones",
+      "answerkey": "user_picked_main_menu_item",
+      "answerType": "uni-selector",
+      "answerOptions": [
+        {
+          "answerOptionText": "¿Qué es Binaricos?",
+          "answerOptionValue": "app.trading.menu.about"
+        },
+        {
+          "answerOptionText": "Quiero información de contacto",
+          "answerOptionValue": "app.trading.menu.contact"
+        },
+        {
+          "answerOptionText": "Quiero hablar con alguien",
+          "answerOptionValue": "app.trading.menu.human"
+        }
+      ]
+    },
+    {
+      "answerKey": "user_nick_name",
+      "operator": "==",
+      "value": "''",
+      "then_SequenceKey": "app.trading.nickname",
+      "else_SequenceKey": "app.trading.menu"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "questions": [
+    "¿Cómo encuentro servicios de transporte y fletes en DiarioInfo-API?",
+    "¿Qué tipos de servicios de transporte se ofrecen?",
+    "¿Cómo se cotizan y programan los servicios de transporte?",
+    "¿Qué medidas se toman para garantizar la seguridad de las cargas?",
+    "¿Puedo rastrear mis envíos o cargas a través de DiarioInfo-API?",
+    "¿Cuáles son las credenciales y calificaciones de los proveedores de transporte?",
+    "¿Dónde puedo encontrar información sobre transporte de materiales en DiarioInfo-API?",
+    "Estoy buscando servicios de transporte urgente, ¿tienen opciones disponibles?",
+    "¿Cuáles son los costos asociados con el transporte de materiales?",
+    "¿Puedo obtener cotizaciones personalizadas para el transporte de materiales?"
+  ],
+  "answers": [
+    "Puedes encontrar servicios de transporte y fletes en DiarioInfo-API explorando nuestras opciones.",
+    "Ofrecemos una variedad de servicios de transporte para satisfacer tus necesidades en DiarioInfo-API.",
+    "Los servicios de transporte se cotizan y programan de manera conveniente en nuestra plataforma.",
+    "Implementamos medidas de seguridad rigurosas para garantizar la seguridad de las cargas en el transporte.",
+    "Sí, puedes rastrear tus envíos o cargas fácilmente a través de DiarioInfo-API.",
+    "Los proveedores de transporte en DiarioInfo-API cuentan con credenciales y calificaciones verificadas.",
+    "En DiarioInfo-API, encuentras información detallada sobre servicios de transporte de materiales.",
+    "Sí, tenemos opciones de transporte urgente disponibles en nuestra plataforma.",
+    "Los costos asociados con el transporte de materiales varían y pueden ser discutidos con los proveedores.",
+    "Puedes obtener cotizaciones personalizadas para el transporte de materiales según tus requisitos en DiarioInfo-API."
+  ],
+  "categories": [
+    "transport"
+  ],
+  "suggestions": [
+    "Necesito transporte para mis mercancías",
+    "Buscar servicios de fletes",
+    "Envíos rápidos y urgentes",
+    "Cotizaciones para transporte de materiales",
+    "Rastreo de envíos"
+  ]
+}

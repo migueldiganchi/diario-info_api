@@ -1,0 +1,44 @@
+{
+  "questions": [
+    "Quiero devolver un material que compré, ¿cuál es el proceso?",
+    "¿Cuáles son las condiciones para realizar devoluciones en DiarioInfo-API?",
+    "He recibido un material incorrecto, ¿cómo procedo con la devolución?",
+    "¿Hay algún costo asociado con las devoluciones?",
+    "Necesito devolver un material dañado, ¿cuáles son los pasos a seguir?",
+    "¿Cuál es el plazo para realizar devoluciones en DiarioInfo-API?",
+    "Explícame el proceso de reembolso en caso de devolución",
+    "¿Ofrecen servicios de recolección de materiales para devoluciones?",
+    "¿Qué debo incluir al devolver un material?",
+    "Quiero cancelar mi pedido, ¿es posible y cuáles son las condiciones?"
+  ],
+  "answers": [
+    "El proceso de devolución en DiarioInfo-API es sencillo. Comunícate con nuestro equipo de atención al cliente para obtener asistencia y guía paso a paso.",
+    "Las condiciones para realizar devoluciones incluyen devolver el material en su estado original y dentro del plazo establecido. Consulta nuestras políticas de devolución para obtener más detalles.",
+    "Si has recibido un material incorrecto, ponte en contacto con nuestro equipo de atención al cliente de inmediato. Te ayudaremos a resolver la situación y gestionar la devolución.",
+    "En la mayoría de los casos, no hay costos asociados con las devoluciones. Sin embargo, te recomendamos revisar nuestras políticas de devolución para conocer cualquier excepción.",
+    "Si necesitas devolver un material dañado, sigue los pasos indicados por nuestro equipo de atención al cliente. Asegúrate de documentar y reportar el daño para facilitar el proceso.",
+    "El plazo para realizar devoluciones puede variar. Consulta nuestras políticas de devolución o comunícate con nuestro equipo para conocer el plazo específico de tu compra.",
+    "En caso de devolución, procederemos con el reembolso según nuestras políticas. Asegúrate de cumplir con las condiciones de devolución para garantizar un proceso sin problemas.",
+    "Ofrecemos servicios de recolección de materiales para devoluciones en algunos casos. Comunícate con nuestro equipo para coordinar la recolección si es necesario.",
+    "Al devolver un material, incluye todos los accesorios y documentos originales. Esto facilitará el proceso de devolución y reembolso.",
+    "Si deseas cancelar tu pedido, comunícate con nuestro equipo de atención al cliente lo antes posible. Las condiciones de cancelación pueden variar, así que infórmate para conocer los detalles específicos."
+  ],
+  "categories": [
+    "materials",
+    "returning",
+    "domo",
+    "openings"
+  ],
+  "suggestions": [
+    "Explícame cómo comprar en DiarioInfo-API",
+    "¿Cuáles son las opciones de pago disponibles?",
+    "Necesito asesoramiento sobre materiales para mi proyecto",
+    "¿Tienen garantía en los productos?",
+    "Háblame sobre las opciones de envío",
+    "¿Cuánto tiempo tarda la entrega?",
+    "¿Cómo funciona el servicio al cliente?",
+    "Quiero conocer las ofertas actuales",
+    "¿Tienen opciones de materiales sostenibles?",
+    "Explícame las políticas de devolución"
+  ]
+}

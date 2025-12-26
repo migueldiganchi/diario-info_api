@@ -1,0 +1,26 @@
+{
+  "questions": [
+    "¿Cuánto cuesta?",
+    "Dame el precio",
+    "¿Cuál es el valor?",
+    "Precio, por favor",
+    "¿Cuánto tengo que pagar?",
+    "¿Qué precio tiene?",
+    "Háblame del costo",
+    "¿Me puedes decir el precio?",
+    "Estoy interesado en saber el precio",
+    "¿Cuánto debo desembolsar?"
+  ],
+  "answers": [
+    "El precio varía según las opciones de personalización que elijas. Puede ser mejor si me proporcionas más detalles sobre lo que necesitas.",
+    "El costo del servicio depende de cómo lo personalices. ¿Tienes alguna preferencia específica en mente?",
+    "No puedo proporcionarte un precio fijo, ya que depende de la personalización del servicio. ¿Puedes compartir más detalles sobre lo que buscas?",
+    "El precio es flexible y se adapta a tus necesidades específicas. ¿Qué características o personalización tienes en mente?",
+    "El costo se calcula de acuerdo a la personalización que desees. ¿Puedes describirme más sobre tus requerimientos?",
+    "El precio varía según las opciones de personalización. ¿Qué aspectos te gustaría personalizar?",
+    "No tengo un precio fijo, ya que depende de cómo personalices el servicio. ¿En qué puedo ayudarte a personalizarlo?",
+    "El precio es ajustable según tus preferencias y necesidades. ¿Cuáles son tus requerimientos?",
+    "No puedo proporcionarte un precio estándar, ya que se basa en la personalización del servicio. ¿Qué características te gustaría tener?",
+    "El costo es flexible y se adapta a la personalización que desees. ¿Cuál es tu visión para este servicio?"
+  ]
+}

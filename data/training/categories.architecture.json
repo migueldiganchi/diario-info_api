@@ -1,0 +1,32 @@
+{
+  "questions": [
+    "Necesito encontrar profesionales o servicios relacionados con la arquitectura",
+    "¿Cómo encuentro un arquitecto calificado en DiarioInfo-API?",
+    "¿Qué servicios ofrecen los arquitectos en la plataforma?",
+    "¿Puedo ver ejemplos de proyectos anteriores de arquitectos en DiarioInfo-API?",
+    "¿Cómo funciona el proceso de diseño arquitectónico en DiarioInfo-API?",
+    "¿Puedo solicitar presupuestos personalizados a los estudios de arquitectura?",
+    "¿Dónde encuentro información sobre estudios de arquitectura en DiarioInfo-API?",
+    "Estoy buscando un arquitecto para un proyecto residencial, ¿tienen opciones disponibles?",
+    "¿Cuáles son las tendencias actuales en diseño arquitectónico?",
+    "¿Puedo obtener asesoramiento sobre el diseño de interiores con DiarioInfo-API?",
+    "¿Dónde puedo encontrar arquitectos especializados en proyectos comerciales?"
+  ],
+  "answers": [
+    "Puedes encontrar un arquitecto calificado explorando las opciones en DiarioInfo-API.",
+    "Los arquitectos en DiarioInfo-API ofrecen una amplia gama de servicios, desde diseño hasta supervisión.",
+    "Sí, puedes ver ejemplos de proyectos anteriores de arquitectos en sus perfiles en DiarioInfo-API.",
+    "El proceso de diseño arquitectónico se realiza de manera eficiente en DiarioInfo-API.",
+    "Sí, puedes solicitar presupuestos personalizados directamente a los estudios de arquitectura en nuestra plataforma.",
+    "En DiarioInfo-API, encuentras información detallada sobre estudios de arquitectura.",
+    "Sí, tenemos opciones de arquitectos disponibles para proyectos residenciales en nuestra plataforma.",
+    "Para conocer las tendencias actuales en diseño arquitectónico, puedes explorar nuestros perfiles de arquitectos.",
+    "Sí, puedes obtener asesoramiento sobre diseño de interiores a través de DiarioInfo-API.",
+    "Puedes encontrar arquitectos especializados en proyectos comerciales en DiarioInfo-API explorando nuestras opciones."
+  ],
+  "categories": [
+    "architecture",
+    "materials",
+    "transport"
+  ]
+}
