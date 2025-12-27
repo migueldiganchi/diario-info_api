@@ -1,10 +1,10 @@
-# Rest API - {JsonLink}.IO
+# Rest API - {DiarioInfo}.IO
 
-{JsonLink}.IO Authentication API
+{DiarioInfo}.IO Authentication API
 
 ## About the project
 
-{JsonLink}.IO Authentication Manager
+{DiarioInfo}.IO Authentication Manager
 
 ## How To Install
 
