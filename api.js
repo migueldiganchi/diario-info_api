@@ -3,9 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const api = express();
 
-// const { learn } = require("./util/ai");
-const { API_PORT } = process.env;
-const PORT = API_PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 // Headers handler
 api.use((req, res, next) => {
@@ -18,36 +16,25 @@ api.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Accept, Content-Type, Authorization"
   );
-
   next();
 });
-
-// Prepare bot to respond the user
-// learn();
 
 // Parser
 api.use(express.json());
 
-// Routing: API
-const authRouter = require("./routes/auth.router");
-const userRouter = require("./routes/user.router");
-const notificationRouter = require("./routes/notification.router");
-const publicationRouter = require("./routes/publication.router");
-const botRouter = require("./routes/bot.router");
+// Routes
+api.use(require("./routes/user.router"));
+api.use(require("./routes/auth.router"));
+api.use(require("./routes/notification.router"));
+api.use(require("./routes/publication.router"));
+api.use(require("./routes/bot.router"));
 
-// Routing Implementations
-api.use(userRouter);
-api.use(authRouter);
-api.use(notificationRouter);
-api.use(publicationRouter);
-api.use(botRouter);
-
-// Mongo Setup
-mongoose.set("strictQuery", true); // O Avoid Warnings
-
-// @todo: MySql Connection
-
-// API Start
-api.listen(PORT, () => {
-  console.info(`DiarioInfo API is listening on http://localhost:${PORT}...`);
+api.get("/health", (req, res) => {
+  res.json({ status: "ok", env: process.env.API_ENVIRONMENT });
 });
+
+const server = api.listen(PORT || 3000, '0.0.0.0', () => {
+  console.log(`API running on port ${PORT}`);
+});
+
+module.exports = server;
