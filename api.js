@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const express = require("express");
 const api = express();
-const mongoose = require("mongoose");
 
 // const { learn } = require("./util/ai");
 const { API_PORT } = process.env;
@@ -19,6 +18,7 @@ api.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Accept, Content-Type, Authorization"
   );
+
   next();
 });
 
@@ -49,5 +49,5 @@ mongoose.set("strictQuery", true); // O Avoid Warnings
 
 // API Start
 api.listen(PORT, () => {
-  console.warn(`DiarioInfo API is listening on http://localhost:${PORT}...`);
+  console.info(`DiarioInfo API is listening on http://localhost:${PORT}...`);
 });
