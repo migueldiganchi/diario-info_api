@@ -1,268 +1,267 @@
-const User = require("../models/user.model.js");
-const Qualification = require("../models/qualification.model.js");
-const Publication = require("../models/publication.model.js");
+const UserModel = require("../models/user.model");
+const LogModel = require("../models/log.model");
 
-const getUserByUnique = async (userId) => {
-  let user = await User.findOne({ alias: userId }).select(
-    "_id pictureUrl name alias bio email phone mobile locationAddress locationCountry locationCity"
-  );
+const bcrypt = require("bcryptjs");
 
-  // If Alias doesn't Work, find with Id
-  if (!user) {
-    // Get User by Id
-    user = await User.findById(userId).select(
-      "_id pictureUrl name alias bio email phone mobile locationAddress locationCountry locationCity"
-    );
-  }
+exports.createUser = async (req, res) => {
+  const authenticatedUserId = req.userId;
+  const {
+    name,
+    lastName,
+    email,
+    status,
+    role,
+    phone,
+    locationAddress,
+    locationLat,
+    locationLng,
+    details,
+  } = req.body;
 
-  // Validate User
-  if (!user) {
-    res.status(404).json({
-      message: `User was not Found with userId: ${userId}`,
+  try {
+    const staticPassword = "Aluwind.10";
+    const staticHashedPassword = await bcrypt.hash(staticPassword, 12);
+
+    // Create User
+    await UserModel.createUser({
+      name,
+      lastName,
+      email,
+      password: staticHashedPassword,
+      status,
+      role,
+      phone,
+      locationAddress,
+      locationLat,
+      locationLng,
+      details,
+    });
+
+    // Create Log
+    await LogModel.createLog({
+      createdAt: new Date(),
+      userId: authenticatedUserId,
+      action: "Creación de un Usuario",
+      details: `Se ha creado el Usuario llamado "${name}"`,
+    });
+
+    // Respond to User
+    res.status(201).json({
+      success: true,
+      message: "User was created successfully",
+    });
+  } catch (err) {
+    // Errors Handling
+    console.error("[err]", err.message);
+    res.status(500).json({
+      message: "There was an error while creating the user",
     });
   }
+};
 
-  return user;
+exports.toggleUserStatus = async (req, res) => {
+  const authenticatedUserId = req.userId;
+  const { id: userId } = req.params;
+
+  try {
+    // Toggle User Status
+    await UserModel.toggleUserStatus(userId);
+
+    // Create Log
+    await LogModel.createLog({
+      createdAt: new Date(),
+      userId: authenticatedUserId,
+      action: "Actualización del Estado de un Usuario",
+      details: `Se ha actualizado el Estado del Usuario con Id: ${userId}`,
+    });
+
+    // Respond to User
+    res.status(200).json({
+      success: true,
+      message: "User status toggled successfully",
+    });
+  } catch (err) {
+    // Errors Handling
+    console.error("[err]", err.message);
+    res.status(500).json({
+      message: "There was an error while toggling user status",
+    });
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  const authenticatedUserId = req.userId;
+  const { id: userId } = req.params;
+  const {
+    name,
+    lastName,
+    email,
+    status,
+    role,
+    phone,
+    locationAddress,
+    locationLat,
+    locationLng,
+    details,
+  } = req.body;
+
+  try {
+    // Update User
+    await UserModel.updateUser(userId, {
+      name,
+      lastName,
+      email,
+      status,
+      role,
+      phone,
+      locationAddress,
+      locationLat,
+      locationLng,
+      details,
+    });
+
+    // Create Log
+    await LogModel.createLog({
+      createdAt: new Date(),
+      userId: authenticatedUserId,
+      action: "Actualización de un Usuario",
+      details: `Se han actualizado los datos del Usuario llamado "${name}", con Id: ${userId}`,
+    });
+
+    // Respond To User
+    res.status(200).json({
+      success: true,
+      message: "User was updated successfully",
+    });
+  } catch (err) {
+    // Errors Handling
+    console.error("[err]", err.message);
+    res.status(500).json({
+      message: "There was an error while updating the user",
+    });
+  }
 };
 
 exports.getUser = async (req, res) => {
-  const userId = req.params.id;
-
-  let userRatingData = null;
-  let userQualificationAvg = 0;
+  const { id: userId } = req.params;
 
   try {
-    // Read User Information
-    const user = await getUserByUnique(userId);
+    // Get User by ID
+    const user = await UserModel.getUser(userId);
 
-    // Get User Qualifications from Database
-    const userQualifications = await Qualification.find({
-      toUser: user.id,
-    }).populate("fromUser", "name pictureUrl");
-
-    // General User Qualification
-    if (userQualifications && userQualifications.length) {
-      // Sum All Votes
-      const userQualificationSum = userQualifications.reduce(
-        (sum, userQualification) => sum + userQualification.rating,
-        0
-      );
-
-      // Calculate Average of Qualifications
-      userQualificationAvg =
-        userQualifications && userQualifications.length
-          ? userQualificationSum / userQualifications.length
-          : 0;
-
-      // Response Structure
-      userRatingData = {
-        qualificationAvg: userQualificationAvg,
-        qualifications: userQualifications,
-      };
+    if (user) {
+      // Respond to User
+      res.status(200).json({
+        success: true,
+        message: "User loaded successfully",
+        user,
+      });
+    } else {
+      // User Was Not Found response
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
-
-    // Respond to user
-    res.status(200).json({
-      success: true,
-      message: "User loaded successfully",
-      user: user,
-      userRatingData,
-    });
   } catch (err) {
-    // Error hanlder
-    console.log("[err]", err);
+    // Errors Handling
+    console.error("[err]", err.message);
     res.status(500).json({
-      message: "There was an error while get the user",
+      message: "There was an error while getting the user",
     });
   }
 };
 
 exports.getUsers = async (req, res) => {
-  const page = Math.max(0, req.query.page);
-  const pageSize = Math.max(0, req.query.pageSize);
-  const queryConditions = {};
-
-  // USER STATUS FILTER
-  queryConditions["status"] = "1";
+  const { page = 1, pageSize = 10, term = "" } = req.query;
 
   try {
-    const users = await User.find(queryConditions)
-      .sort({ createdAt: -1 })
-      .limit(pageSize)
-      .skip(pageSize * (page - 1))
-      .exec();
-    const total = await User.countDocuments(queryConditions);
-    const totalPages = Math.ceil(total / pageSize);
-    const nextPage = page + 1 <= totalPages ? page + 1 : null;
-
-    return res.status(200).json({
-      success: true,
-      users,
-      total,
-      totalPages,
-      nextPage,
-    });
-  } catch (err) {
-    console.info("[err]", err);
-    return res.status(500).send({
-      message: err.message || "Something went wrong while fetching all users.",
-    });
-  }
-};
-
-exports.createUserQualification = async (req, res) => {
-  const fromUserId = req.userId;
-  const { toUserId, rating, comment } = req.body;
-
-  // Create Qualification
-  const newQualification = new Qualification({
-    fromUser: fromUserId,
-    toUser: toUserId,
-    rating: rating,
-    comment: comment,
-    createdAt: Date.now(),
-  });
-
-  try {
-    // Save New Qualification
-    const createdQualification = await newQualification.save();
+    // Get All Users
+    const { users, nextPage, totalUsers } = await UserModel.getUserList(
+      page,
+      pageSize,
+      term
+    );
 
     // Respond to the User
-    res.status(201).json({
-      success: true,
-      message: "Qualification was created successfully",
-      qualification: createdQualification,
-    });
-  } catch (err) {
-    // Error hanlder
-    console.log("[err]", err);
-    res.status(500).json({
-      message: "There was an error while rate the user",
-    });
-  }
-};
-
-exports.updateUserQualification = async (req, res) => {
-  const fromUserId = req.userId;
-  const toUserId = req.params.id;
-  const { comment, rating } = req.body;
-
-  try {
-    // Recover Qualification To Update
-    const qualificationToUpdate = await Qualification.findOne({
-      fromUser: fromUserId,
-      toUser: toUserId,
-    });
-
-    // Check for Errors
-    if (!qualificationToUpdate) {
-      console.error("[err]", err);
-      return res.status(404).send({
-        message: err.message || "Qualification was not found",
-      });
-    }
-
-    // Update Qualification
-    qualificationToUpdate.comment = comment;
-    qualificationToUpdate.rating = rating;
-    qualificationToUpdate.updatedAt = Date.now();
-    const updatedQualification = await qualificationToUpdate.save();
-
-    return res.status(201).json({
-      success: true,
-      message: "Qualification was updated successfully",
-      qualification: updatedQualification,
-    });
-  } catch (err) {
-    console.error("[err]", err);
-    res.status(500).send({
-      message:
-        err.message || "Something went wrong while updating the Qualification.",
-    });
-  }
-};
-
-exports.getUserQualification = async (req, res) => {
-  const fromAuthenticatedUserId = req.userId;
-  const toUserId = req.params.id;
-
-  try {
-    const userQualification = await Qualification.findOne({
-      fromUser: fromAuthenticatedUserId,
-      toUser: toUserId,
-    }).populate("fromUser", "name pictureUrl");
-
-    // Respond to user
     res.status(200).json({
       success: true,
-      qualification: userQualification,
+      message: "Users loaded successfully",
+      users,
+      pagination: {
+        total: totalUsers,
+        currentPage: parseInt(page),
+        pageSize: parseInt(pageSize),
+        nextPage,
+      },
     });
   } catch (err) {
-    // Error hanlder
-    console.log("[err]", err);
+    // Errors handling
+    console.error("[err]", err.message);
     res.status(500).json({
-      message: "There was an error while get the user",
+      message: "There was an error while getting the users",
     });
   }
 };
 
-exports.getUserPublications = async (req, res) => {
-  const page = Math.max(0, req.query.page);
-  const pageSize = Math.max(0, req.query.pageSize);
-  const typed = req.query.typed ? req.query.typed : "";
-  const userId = req.params.id;
-  const term = req.query.term ? req.query.term : "";
-  const termRegex = new RegExp(term, "i"); // i for case insensitive searching
-  const queryConditions = {};
-
-  // Read User Information
-  const user = await getUserByUnique(userId);
-
-  // Read creator User
-  queryConditions["createdBy"] = user.id;
-
-  // Term Filter
-  if (term != "") {
-    queryConditions["$or"] = [{ title: termRegex }, { description: termRegex }];
-  }
-
-  // Typed Filter
-  if (typed != "") {
-    queryConditions["typed"] = typed;
-  }
-
-  // Publication Status Filter
-  queryConditions["status"] = "1";
+exports.removeUser = async (req, res) => {
+  const authenticatedUserId = req.userId;
+  const { id: userId } = req.params;
 
   try {
-    const publications = await Publication.find(queryConditions)
-      .populate({
-        path: "createdBy",
-        model: "User",
-        select:
-          "_id name phone locationAddress locationCountry locationCity pictureUrl",
-      })
-      .sort({ createdAt: -1 })
-      .limit(pageSize)
-      .skip(pageSize * (page - 1))
-      .exec();
+    // Remove User
+    await UserModel.deleteUser(userId);
 
-    const total = await Publication.countDocuments(queryConditions);
-    const totalPages = Math.ceil(total / pageSize);
-    const nextPage = page + 1 <= totalPages ? page + 1 : null;
+    // Create Log
+    await LogModel.createLog({
+      createdAt: new Date(),
+      userId: authenticatedUserId,
+      action: "Eliminación de un Usuario",
+      details: `Se eliminó el Usuario con Id: ${userId}`,
+    });
 
-    return res.status(200).json({
+    // Respond to User
+    res.status(200).json({
       success: true,
-      publications,
-      total,
-      totalPages,
-      nextPage,
+      message: "User was removed successfully",
     });
   } catch (err) {
-    console.info("[err]", err);
-    return res.status(500).send({
-      message:
-        err.message || "Something went wrong while fetching user publications.",
+    // Errors Handling
+    console.error("[err]", err.message);
+    res.status(500).json({
+      message: "There was an error while removing the user",
+    });
+  }
+};
+
+exports.removeUsers = async (req, res) => {
+  const authenticatedUserId = req.userId;
+  const { ids: userIdsToRemove } = req.body;
+
+  try {
+    // Remove Serveral Users
+    await UserModel.deleteUsers(userIdsToRemove);
+
+    // Create Log
+    await LogModel.createLog({
+      createdAt: new Date(),
+      userId: authenticatedUserId,
+      action: "Eliminación de Varios Usuarios",
+      details: `Se eliminaron varios Usuarios con IDs: ${userIdsToRemove.join(
+        ", "
+      )}`,
+    });
+
+    // Respond to User
+    res.status(200).json({
+      success: true,
+      message: "Users have been removed successfully",
+    });
+  } catch (err) {
+    // Errors Handling
+    console.error("[err]", err.message);
+    res.status(500).json({
+      message: "There was an error while removing several users",
     });
   }
 };

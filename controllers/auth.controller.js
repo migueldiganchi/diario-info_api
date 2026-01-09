@@ -1,116 +1,12 @@
 const User = require("../models/user.model.js");
 const Notification = require("../models/notification.model.js");
 
-const API_ENVIRONMENT = process.env.API_ENVIRONMENT;
-const isProduction = API_ENVIRONMENT && API_ENVIRONMENT == "production";
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
-const trackingKeyGenerator = require("uuid");
-const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-
-const generateAccountActivationURL = async (createdUser) => {
-  return new Promise((resolve, reject) => {
-    // Create new token
-    crypto.randomBytes(32, async (err, buffer) => {
-      if (err) {
-        console.info("[err]", err);
-        return reject("Error while generating activation URL");
-      }
-
-      // Build activation URL
-      const UI_URL = process.env.UI_URL;
-      const newSignupToken = buffer.toString("hex");
-      const activationURL = `${UI_URL}/auth/new/${newSignupToken}`;
-      const activationTime = 7889400000; // 3 monthts
-
-      // Save signup data to the user
-      createdUser.signupToken = newSignupToken;
-      createdUser.signupTokenExpiresAt = Date.now() + activationTime; // Token is valid for 3 months
-
-      // Save user
-      await createdUser.save();
-
-      // Return generated URL
-      resolve(activationURL);
-    });
-  });
-};
-
-const handleUserActivation = async (createdUser) => {
-  if (isProduction) {
-    console.info("[User Activation in PRODUCTION MODE]...");
-
-    // Set Welcome Notification to new User
-    const welcomeNotification = new Notification({
-      toUser: createdUser,
-      message: `¡Bienvenid@ {DiarioInfo-API}! ${createdUser.name}!`,
-      title:
-        "¡Estas conectado al servicio de Notificaciones de DiarioInfo-API!",
-      details:
-        "En DiarioInfo-API podrás ayudar a cuidar el planeta usando diferentes perspectivas. Contamos con tu buena voluntad",
-      kind: "success",
-      createdAt: Date.now(),
-    });
-
-    // Save Welcome Notification
-    await welcomeNotification.save();
-
-    // Create activation URL
-    const { email: accountActivationEmail } = createdUser;
-    const accountActivationURL = await generateAccountActivationURL(
-      createdUser
-    );
-
-    // Notify user account
-    const message = {
-      from: "hello@ciudadbotica.com",
-      to: accountActivationEmail,
-      subject: "¡Bienvenido a {DiarioInfo-API}!",
-      html: `
-        <h3>
-          Bienvenid@ al Equipo de {DiarioInfo-API}!
-        </h3>
-        <p>
-          Por favor dale click <a href="${accountActivationURL}" target="_blank">
-          aquí</a> para activar tu cuenta
-        </p>`,
-    };
-
-    // Send message by Email
-    await transporter.sendMail(message);
-  } else {
-    console.info("[User Activation in DEV MODE]...");
-
-    // Direct account activation
-    await activateUser(createdUser);
-  }
-};
-
-const activateUser = async (user) => {
-  // Set signup data
-  const trackingKey = trackingKeyGenerator.v4();
-
-  user.signupToken = null;
-  user.signupTokenExpiresAt = null;
-  user.signupTokenActivatedAt = new Date();
-  user.trackingKey = trackingKey;
-
-  await user.save();
-};
-
-// Exposed methods
-exports.signup = async (req, res, next) => {
+exports.signup = async (req, res) => {
   const errors = validationResult(req);
 
   // Server validation
@@ -121,12 +17,12 @@ exports.signup = async (req, res, next) => {
     throw error;
   }
 
-  const { name, email, password } = req.body;
+  const { name, lastName, email, password } = req.body;
   const emailRegex = /\+[^@]*/g;
   const cleanEmail = email.replace(emailRegex, "");
-  const existingUser = await User.findOne({ email: cleanEmail });
+  const existingUser = await User.getUserByEmail(cleanEmail);
 
-  // Check if new user email alread exists
+  // Check if new user email already exists
   if (existingUser) {
     return res.status(303).send({
       // https://www.rfc-editor.org/rfc/rfc7231#section-4.3.3
@@ -134,41 +30,57 @@ exports.signup = async (req, res, next) => {
     });
   }
 
-  // Create Password
+  // Create Hashed Password
   bcrypt
     .hash(password, 12)
-    .then((hashedPassword) => {
-      const newUser = new User({
-        name: name,
-        email: email,
-        password: hashedPassword,
-      });
+    .then(async (hashedPassword) => {
+      try {
+        // Generate Activation Token
+        const signupToken = crypto.randomBytes(32).toString("hex");
+        const signupTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-      // Save user into DB
-      return newUser
-        .save()
-        .then(async (createdUser) => {
-          // Activate User
-          await handleUserActivation(createdUser);
-
-          // Respond to the user
-          res.status(201).json({
-            success: true,
-            message: `User ${createdUser.name} was created successfuly`,
-            user: createdUser,
-          });
-        })
-        .catch((err) => {
-          // Database error handler
-          console.error("[err]", err);
-          res.status(500).send({
-            message:
-              err.message || "Something went wrong while creating the User.",
-          });
+        // Create And Save New Password
+        const createdUser = await User.createUser({
+          name,
+          lastName,
+          email,
+          password: hashedPassword,
+          signupToken,
+          signupTokenExpiresAt,
         });
+
+        const createdUserId = createdUser?.insertId ?? null;
+
+        // Notify Created User
+        Notification.createNotification({
+          toUserId: createdUserId,
+          message: "Bienvenid@ a Seriar IA",
+          messageType: "success",
+        });
+
+        // Notify All Managers
+        Notification.createNotificationToUsers(
+          "super",
+          `El usuario ${name} ${lastName} ha creado una cuenta y requiere aprobación`,
+          "info"
+        );
+
+        // Respond to the user
+        return res.status(201).json({
+          success: true,
+          message: `User ${createdUser.name} was created successfully`,
+          user: createdUser,
+        });
+      } catch (err) {
+        // Database error handler
+        console.error("[err]", err);
+        return res.status(500).send({
+          message:
+            err.message || "Something went wrong while creating the User.",
+        });
+      }
     })
     .catch((err) => {
-      console.error("[err]", err);
       // Password creator error handler
       console.log("[err]", err);
       res.status(500).json({
@@ -182,10 +94,7 @@ exports.activateAccount = async (req, res) => {
 
   try {
     // Find user by token that is not expired
-    const user = await User.findOne({
-      signupToken: signupToken,
-      signupTokenExpiresAt: { $gt: new Date() },
-    });
+    const user = await User.getUserBySignupToken(signupToken);
 
     // If the user doesn't exist => token is not valid
     if (!user) {
@@ -195,7 +104,7 @@ exports.activateAccount = async (req, res) => {
     }
 
     // Set signup data
-    await activateUser(user);
+    await User.activateUser(user.id);
 
     // Respond to the user
     res.status(200).json({
@@ -212,7 +121,7 @@ exports.activateAccount = async (req, res) => {
   }
 };
 
-exports.signin = (req, res) => {
+exports.signin = async (req, res) => {
   const errors = validationResult(req);
 
   // Server validations
@@ -223,93 +132,63 @@ exports.signin = (req, res) => {
     throw error;
   }
 
-  // Extract data from request
   const { email, password } = req.body;
 
-  let loadedUser = null;
-  let status = null;
-  let error = null;
-  let errorMessage = "";
+  try {
+    // Get User by Email
+    const user = await User.getUserByEmail(email);
 
-  User.findOne({ email: email })
-    .then((user) => {
-      if (!user) {
-        errorMessage = `User with this email could not be found: ${email}`;
-        error = new Error(errorMessage);
-        error.statusCode = 401;
-        return res.status(error.statusCode).json({
-          message: errorMessage,
-        });
-      }
-
-      // set user with loaded user
-      loadedUser = user;
-
-      // user exists
-      return bcrypt.compare(password, user.password);
-    })
-    .then((isRightPassword) => {
-      if (!isRightPassword) {
-        errorMessage = "Wrong password!";
-        error = new Error(errorMessage);
-        error.statusCode = 403;
-        return res.status(error.statusCode).json({
-          message: errorMessage,
-        });
-      }
-
-      // Check for signup token date expiration
-      if (loadedUser && !loadedUser.signupTokenActivatedAt) {
-        const signupTokenHasExpired =
-          new Date() > loadedUser.signupTokenExpiresAt;
-
-        errorMessage = signupTokenHasExpired
-          ? `User account is not active: ${email}`
-          : "Validation token has expired";
-        error = new Error(errorMessage);
-        error.statusCode = signupTokenHasExpired ? 428 : 451;
-        return res.status(error.statusCode).json({
-          email: loadedUser.email,
-          status: status,
-          message: errorMessage,
-        });
-      } else if (!loadedUser) {
-        errorMessage = "User was not found!";
-        error = new Error(errorMessage);
-        error.statusCode = 404;
-        return res.status(error.statusCode).json({
-          message: errorMessage,
-        });
-      }
-
-      // Create app key token
-      const token = jwt.sign(
-        {
-          userId: loadedUser._id,
-          userEmail: loadedUser.email,
-          userTrackingKey: loadedUser.trackingKey,
-        },
-        "some_super_secret_text",
-        { expiresIn: "1h" }
-      );
-
-      // Respond to user
-      res.status(200).json({
-        token: token,
-        user: loadedUser,
-        userId: loadedUser._id,
-        userName: loadedUser.name,
-        userEmail: loadedUser.email,
-        userTrackingKey: loadedUser.trackingKey,
+    // Validate User Existence
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found.",
       });
-    })
-    .catch((err) => {
-      // User find error handler
-      console.error("[err]", err);
-      return res.status(500).json({
-        message: "Some error occourred while authentication",
+    }
+
+    // Validate Status
+    if (user.status != "1") {
+      return res.status(309).json({
+        success: false,
+        message: "User Is Not Activated.",
       });
+    }
+
+    // Compare given Password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    // Check form Passwor Validation
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
+    }
+
+    // Sign Password
+    const token = jwt.sign(
+      {
+        email: user.email,
+        userId: user.id,
+      },
+      "some_super_secret_text",
+      { expiresIn: "999 years" } // "Never" expires
+    );
+
+    // Return App Token
+    res.status(200).json({
+      success: true,
+      token: token,
+      message: "User logged in successfully.",
     });
+  } catch (err) {
+    // Errors Handler
+    console.error("[err]", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
 };
 
 exports.signout = (req, res) => {
@@ -329,14 +208,14 @@ exports.signout = (req, res) => {
 
 exports.me = async (req, res) => {
   try {
-    // Clear all cookies
+    // Read User
     const myUserId = req.userId;
-    const myUser = await User.findById(myUserId).populate("seller");
+    const myUser = await User.getUserById(myUserId);
 
     // Respond to user
     res.status(200).json({
       success: true,
-      user: myUser,
+      user: { ...myUser, setup: myUserSetup },
       message: "User logged out successfully",
     });
   } catch (err) {
@@ -350,43 +229,60 @@ exports.me = async (req, res) => {
 
 exports.updateAuthUser = async (req, res) => {
   const userToUpdateId = req.userId;
-  const {
+
+  const { fileUrl, name, lastName, email, phone, locationAddress, details } =
+    req.body;
+
+  const pictureUrl = req.file ? req.file.path : fileUrl;
+
+  const newData = {
     pictureUrl,
     name,
-    alias,
-    bio,
-    locationCountry,
-    locationProvince,
-    locationCity,
-    locationAddress,
+    lastName,
+    email,
     phone,
-    paymentDetails,
-  } = req.body;
+    locationAddress,
+    details,
+  };
 
   try {
-    const userToUpdate = await User.findById(userToUpdateId);
-
-    // Upate User Data
-    userToUpdate.pictureUrl = pictureUrl;
-    userToUpdate.name = name;
-    userToUpdate.alias = alias;
-    userToUpdate.bio = bio;
-    userToUpdate.locationCountry = locationCountry;
-    userToUpdate.locationProvince = locationProvince;
-    userToUpdate.locationCity = locationCity;
-    userToUpdate.locationAddress = locationAddress;
-    userToUpdate.phone = phone;
-    userToUpdate.paymentDetails = paymentDetails;
-    const updatedUser = await userToUpdate.save();
+    await User.updateUser(userToUpdateId, newData);
 
     res.status(201).json({
       status: true,
-      userId: updatedUser._id,
+      userId: userToUpdateId,
     });
   } catch (err) {
     console.error("[err]", err);
     res.status(500).json({
-      message: "Something went wrong while get user list",
+      message: "Something went wrong while updating the user",
+    });
+  }
+};
+
+exports.updateAuthUserPicture = async (req, res) => {
+  const userToUpdateId = req.userId;
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Assuming the file path is stored in req.file.path
+    const pictureUrl = req.file.path;
+
+    // Update the user's picture URL in the database
+    await User.updateUserPictureUrl(userToUpdateId, pictureUrl);
+
+    res.status(200).json({
+      success: true,
+      message: "User picture updated successfully",
+      pictureUrl: pictureUrl,
+    });
+  } catch (err) {
+    console.error("[err]", err);
+    res.status(500).json({
+      message: "Something went wrong while updating the user picture",
     });
   }
 };
@@ -406,7 +302,7 @@ exports.reset = (req, res) => {
       const user = await User.findOne({ email: email });
       const resetBaseURL = process.env.UI_URL;
       const resetURL = `${resetBaseURL}/auth/reset/${newResetToken}`;
-      const resetAppName = "DiarioInfo-API";
+      const resetAppName = "ALUWIND.IA";
       const resetAppEmail = "hello@ciudadbotica.com";
 
       if (!user) {
@@ -417,7 +313,7 @@ exports.reset = (req, res) => {
 
       // Set token timeout to reset password
       user.resetToken = newResetToken;
-      user.resetTokenExpiresAt = Date.now() + 10800000; // One hour from now
+      user.resetTokenExpiresAt = Date.now() + 3600000; // One hour from now
       await user.save();
 
       // Send User Activation
@@ -434,7 +330,7 @@ exports.reset = (req, res) => {
             </p>`,
       };
 
-      await transporter.sendMail(message);
+      // await sendgridMailer.send(message);
 
       // Respond to the user
       res.status(201).json({
@@ -445,7 +341,7 @@ exports.reset = (req, res) => {
       });
     });
   } catch (err) {
-    console.log("[err]", error);
+    console.log("[err]", err);
 
     res.status(500).json({
       message: "Something went wrong while request password reset",
@@ -504,12 +400,74 @@ exports.createPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "New password was saved successfuly",
+      message: "New password was saved successfully",
     });
   } catch (err) {
     console.log("[err]", err);
     return res.status(500).json({
       message: "Something went wrong when create new password",
+    });
+  }
+};
+
+exports.updatePassword = async (req, res) => {
+  const userId = req.userId;
+  const { currentPassword, newPassword, newPasswordConfirmation } = req.body;
+
+  // Initial Validations
+  if (!currentPassword || !newPassword || !newPasswordConfirmation) {
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+    });
+  }
+
+  // Extra Validation
+  if (newPassword !== newPasswordConfirmation) {
+    return res.status(400).json({
+      success: false,
+      message: "New Password and its confirmation does not match",
+    });
+  }
+
+  try {
+    // Get User by ID & Check for Existence
+    const user = await User.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Validate Current Password
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Current Password is not valid",
+      });
+    }
+
+    // Create New Password Hash
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update User Password
+    await User.updateUserPassword(userId, hashedNewPassword);
+
+    res.status(200).json({
+      success: true,
+      message: "Password was updated successfully",
+    });
+  } catch (err) {
+    console.error("[err]", err);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong while updating user password",
     });
   }
 };

@@ -26,14 +26,13 @@ api.use(express.json());
 api.use(require("./routes/user.router"));
 api.use(require("./routes/auth.router"));
 api.use(require("./routes/notification.router"));
-api.use(require("./routes/publication.router"));
 api.use(require("./routes/bot.router"));
 
 api.get("/health", (req, res) => {
   res.json({ status: "ok", env: process.env.API_ENVIRONMENT });
 });
 
-const server = api.listen(PORT || 3000, '0.0.0.0', () => {
+const server = api.listen(PORT || 3000, "0.0.0.0", () => {
   console.log(`API running on port ${PORT}`);
 });
 

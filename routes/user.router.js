@@ -1,27 +1,18 @@
 const express = require("express");
-const userController = require("./../controllers/user.controller");
 const router = express.Router();
 const checkAuth = require("../middleware/check-auth");
+const userController = require("./../controllers/user.controller");
 
 router.get("/users", [], userController.getUsers);
 
-router.get("/user/:id", [], userController.getUser);
-router.get("/user/:id/publications", userController.getUserPublications);
+router.post("/users", checkAuth, userController.createUser);
 
-router.post(
-  "/user/:id/qualifications",
-  checkAuth,
-  userController.createUserQualification
-);
-router.put(
-  "/user/:id/qualification",
-  checkAuth,
-  userController.updateUserQualification
-);
-router.get(
-  "/user/:id/my-qualification",
-  checkAuth,
-  userController.getUserQualification
-);
+router.put("/user/:id", checkAuth, userController.updateUser);
+
+router.put("/user/:id/status", checkAuth, userController.toggleUserStatus);
+
+router.delete("/user/:id", checkAuth, userController.removeUser);
+
+router.delete("/users", checkAuth, userController.removeUsers);
 
 module.exports = router;

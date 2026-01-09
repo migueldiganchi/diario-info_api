@@ -1,7 +1,7 @@
 const express = require("express");
-const notificationController = require("../controllers/notification.controller");
 const router = express.Router();
 const checkAuth = require("../middleware/check-auth");
+const notificationController = require("../controllers/notification.controller");
 
 router.get(
   "/notifications",
@@ -9,12 +9,16 @@ router.get(
   notificationController.getNotifications
 );
 
-router.put("/notification/:id", checkAuth, notificationController.toggleReading);
+router.put(
+  "/notification/:id",
+  checkAuth,
+  notificationController.toggleReadingStatus
+);
 
 router.delete(
   "/notification/:id",
   checkAuth,
-  notificationController.removeNotification
+  notificationController.deleteNotification
 );
 
 module.exports = router;
