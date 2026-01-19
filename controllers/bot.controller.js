@@ -1,10 +1,18 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const User = require("../models/user.model.js");
+const Article = require("../models/article.model.js");
+const Category = require("../models/category.model.js");
+
 const genAIKey = process.env.GENIMI_API_KEY;
-const genAIModel = "gemini-2.0-flash";
+const genAIModel = "gemini-2.5-flash";
 const genAI = new GoogleGenerativeAI(genAIKey);
 
+// Function to get the response from Gemini AI
 const getGenAIAnswer = async (userMessage) => {
-  const ai = genAI.getGenerativeModel({ model: genAIModel });
+  const ai = genAI.getGenerativeModel({
+    model: genAIModel,
+  });
+
   const aiResult = await ai.generateContent(userMessage);
   const aiResponse = await aiResult.response;
   const aiResponseText = aiResponse.text();
@@ -12,236 +20,149 @@ const getGenAIAnswer = async (userMessage) => {
   return aiResponseText;
 };
 
-const getRandomAiAnswer = () => {
-  const phrases = [
-    "Es necesario establecer la API Key del Servicio de Gemini para que funcione la Inteligencia Artificial.",
-    "Por favor, configure la API Key del Servicio de Gemini para habilitar las capacidades de Inteligencia Artificial.",
-    "El sistema requiere que se configure la API Key del Servicio de Gemini para operar correctamente.",
-    "Disculpas, pero la Inteligencia Artificial no funcionará sin una API Key válida del Servicio de Gemini.",
-    "Por favor, proporcione la API Key del Servicio de Gemini para continuar utilizando la Inteligencia Artificial.",
-    "La API Key del Servicio de Gemini debe configurarse para que la funcionalidad de Inteligencia Artificial esté disponible.",
-    "Es imprescindible establecer una API Key válida del Servicio de Gemini para activar la Inteligencia Artificial.",
-    "Configure la API Key del Servicio de Gemini para resolver este inconveniente técnico.",
-  ];
+// Function to create the combined prompt for the bot
+const createCombinedPrompt = (userMessage, articles, categories, users) => {
+  // Base introduction and instructions for the bot
+  let prompt = `Tu nombre es BOT El Constructor.
+  Eres el Representante Virtual de Constructor-IO, una plataforma dedicada a proveer productos y servicios relacionados con la construcción, domótica e inmobiliaria.
+  Constructor-IO utiliza Inteligencia Artificial para recomendar productos y servicios a través de conversaciones con los usuarios. El usuario ha enviado el siguiente mensaje: "${userMessage}". 
+  Aquí tienes información sobre artículos, categorías y usuarios que podrían estar relacionados con el mensaje del usuario. A continuación, analiza la información y responde al usuario de forma apropiada, además de identificar los IDs de los elementos relacionados.\n\n`;
 
-  // Get Random Phrase
-  const randomIndex = Math.floor(Math.random() * phrases.length);
-  return phrases[randomIndex];
-};
+  // Presenting articles
+  prompt += `### Artículos:\n`;
+  articles.forEach((art, index) => {
+    prompt += `${index + 1}. Título: ${art.title}\nDescripción: ${art.description
+      }\nID: ${art._id}\n\n`;
+  });
 
-const getBotPrompt = (userMessage) => {
-  const prompt = `[[[
-    Tu nombre es Aluwind Bot. Y eres el Representante Virtual de Aluwind.IA, 
-    una plataforma destinada a resolver la logística de empaquetado 
-    de perfiles metalúrgicos.
-    [A continuación, considera la siguiente Base de Conocimiento:
-    ${JSON.stringify(knowledgeData)}
-    Para responder de manera simple y detallada al siguiente mensaje]
-  ]]]: ${userMessage}"`;
+  // Presenting categories
+  prompt += `### Categorías:\n`;
+  categories.forEach((cat, index) => {
+    prompt += `${index + 1}. Nombre: ${cat.name}\nID: ${cat._id}\n\n`;
+  });
 
-  return prompt;
-};
+  // Presenting users
+  prompt += `### Usuarios:\n`;
+  users.forEach((user, index) => {
+    prompt += `${index + 1}. Nombre: ${user.name}\nEmail: ${user.email}\nID: ${user._id
+      }\n\n`;
+  });
 
-const getDataBotPrompt = (userMessage) => {
-  const prompt = `[[[
-    [
-      Considera ésta Base de Conocimiento: 
-      ${JSON.stringify(knowledgeData)}:
-      Y la siguiente estructura de Base de Datos Mysql:
-      ${JSON.stringify(knowledgeDataBase)}
-      Para convertir el siguiente mensaje, en un Query MySql que 
-      permita ejecutarlo y obtener resultados concretos en dicha base de datos
-    ]
-
-    [
-      POR FAVOR RESPONDE COMO SENIOR NINJA EN MYSQL SERVER CON MÁS 
-      DE 30 AÑOS DE EXPERIENCIA PROFESIONAL
-      Y PARA CONSTRUIR LOS QUERIES RESPETA AL MÁXIMO 
-      NIVEL DE DETALLE LOS NOMBRES DE LAS TABLAS Y DE LOS CAMPOS
-
-      (
-        Cuando te digo 'Pedidos', seguro hablo de la tabla orders.
-        Cuando te digo 'Items', seguro hablo de la tabla order_items
-      )
-
-      IMPORTANTÍSIMO: SI EL QUERY NO INCLUYE 
-      TABLAS O CAMPOS QUE SE ENCUENTREN EN LA 
-      ESTRUCTURA DE Base de Datos Mysql 
-      PROPORCIONADA, NO CONSTRUYAS EL QUERY
-    ]
-  ]]]: "${userMessage}"`;
+  // Ask for a combined response
+  prompt += `Responde al mensaje del usuario en un tono profesional y amigable y luego, indica los IDs de los artículos, categorías y usuarios relacionados en el siguiente formato JSON:\n`;
+  prompt += `{\n  "message": "Mensaje de respuesta al usuario",\n  "articles": [ID1, ID2, ...],\n  "categories": [ID1, ID2, ...],\n  "users": [ID1, ID2, ...]\n}\n`;
 
   return prompt;
 };
 
-const extractQuery = (inputMessages) => {
-  // Combine all input messages into a single string if they are multiple
-  const combinedMessages = Array.isArray(inputMessages)
-    ? inputMessages.join("\n")
-    : inputMessages;
-
-  // Regular expression to match SQL queries inside triple backticks
-  const sqlRegex = /```(?:mysql|sql)?\s*([\s\S]*?)```/g;
-
-  // Array to store extracted queries
-  const queries = [];
-  let match;
-
-  // Loop through all matches and extract the query
-  while ((match = sqlRegex.exec(combinedMessages)) !== null) {
-    queries.push(match[1].trim());
-  }
-
-  return queries.length ? queries[0] : "";
-};
-
-const extractActions = (userMessage) => {
-  const actions = [];
-
-  if (
-    userMessage.toLowerCase().includes("rendimiento") ||
-    userMessage.toLowerCase().includes("reportes") ||
-    userMessage.toLowerCase().includes("panel de control")
-  ) {
-    actions.push("/admin/dashboard");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("cliente") ||
-    userMessage.toLowerCase().includes("administrar clientes")
-  ) {
-    actions.push("/admin/clients");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("usuario") ||
-    userMessage.toLowerCase().includes("operador")
-  ) {
-    actions.push("/admin/users");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("producto") ||
-    userMessage.toLowerCase().includes("perfil")
-  ) {
-    actions.push("/admin/products");
-  }
-
-  if (userMessage.toLowerCase().includes("notificaciones")) {
-    actions.push("/admin/notifications");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("importar") ||
-    userMessage.toLowerCase().includes("importador")
-  ) {
-    actions.push("/admin/importer");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("balanza") ||
-    userMessage.toLowerCase().includes("pesaje")
-  ) {
-    actions.push("/admin/bascules");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("configuración") ||
-    userMessage.toLowerCase().includes("configurar") ||
-    userMessage.toLowerCase().includes("settings")
-  ) {
-    actions.push("/admin/global-settings");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("registro") ||
-    userMessage.toLowerCase().includes("logs") ||
-    userMessage.toLowerCase().includes("auditor")
-  ) {
-    actions.push("/admin/logs");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("pedido") ||
-    userMessage.toLowerCase().includes("despacho") ||
-    userMessage.toLowerCase().includes("preparación") ||
-    userMessage.toLowerCase().includes("preparaciones")
-  ) {
-    actions.push("/admin/orders");
-  }
-
-  if (
-    userMessage.toLowerCase().includes("inventario") ||
-    userMessage.toLowerCase().includes("stock")
-  ) {
-    actions.push("/admin/stock");
-  }
-
-  return actions;
+const removeIdsFromText = (text) => {
+  return text.replace(/\(ID: [a-fA-F0-9]{24}\)/g, "").trim();
 };
 
 exports.io = async (req, res) => {
   const { interaction } = req.body;
   const { message } = interaction;
   const userMessage = message ? message : "";
+  const userId = req.userId;
 
   try {
-    const genQuestion = getBotPrompt(userMessage);
-    // const genDataBaseQuestion = getDataBotPrompt(userMessage);
-    // const genDataBaseAnswer = await getGenAIAnswer(genDataBaseQuestion);
-    // const genAIQuery = extractQuery(genDataBaseAnswer);
+    const user = await User.findById(userId);
 
-    let aiAnswer;
-    let aiData = null;
-    let aiActions = [];
-
-    // if (genAIQuery) {
-    try {
-      aiAnswer = await getGenAIAnswer(genQuestion);
-      aiActions = extractActions(userMessage);
-
-      // DATA READER
-      // aiData = await readDynamicQuery(genAIQuery);
-      // aiAnswer = await getGenAIAnswer(
-      //   `Por favor infiere una respuesta profesional, detallada y
-      //     en español de éstos datos: ${JSON.stringify(aiData)}`
-      // );
-    } catch (aiQueryError) {
-      console.info(`[aiQueryError]`, aiQueryError);
-      aiAnswer = getRandomAiAnswer();
+    if (user) {
+      console.log("[This User is Talking] => ", user);
     }
-    // } else {
-    //   console.info("[NO QUERY HERE]");
-    //   aiAnswer = await getGenAIAnswer(genQuestion);
-    // }
+
+    // Fetch related entities from the database without limiting the results
+    const relatedArticles = await Article.find().select(
+      "title description _id category author"
+    );
+    const relatedCategories = await Category.find().select(
+      "name description _id"
+    );
+    const relatedUsers = await User.find().select(
+      "name pictureUrl bio description email _id"
+    );
+
+    // Create combined prompt for AI
+    const combinedPrompt = createCombinedPrompt(
+      userMessage,
+      relatedArticles,
+      relatedCategories,
+      relatedUsers
+    );
+
+    // Get combined response from Gemini AI && Clean up and extract
+    // JSON part from the AI Response
+    const genAIAnswer = await getGenAIAnswer(combinedPrompt);
+    const jsonStartIndex = genAIAnswer.indexOf("{");
+    const jsonEndIndex = genAIAnswer.lastIndexOf("}");
+
+    if (jsonStartIndex === -1 || jsonEndIndex === -1) {
+      throw new Error("No valid JSON found in the AI response");
+    }
+
+    // Extract and parse the JSON data safely
+    const jsonResponse = genAIAnswer.slice(jsonStartIndex, jsonEndIndex + 1);
+
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(jsonResponse);
+    } catch (parseError) {
+      console.error("[parseError]", parseError);
+      return res.status(400).json({
+        message: "Error parsing AI response. Please try again.",
+      });
+    }
+
+    const {
+      message: aiMessage,
+      articles: artIds = [],
+      categories: catIds = [],
+      users: userIds = [],
+    } = parsedResponse;
+
+    // Filter the related entities based on the IDs provided by the AI
+    const filteredArticles = relatedArticles.filter((art) =>
+      artIds.includes(art._id.toString())
+    );
+
+    // Include users who created the articles
+    const articleUserIds = new Set(
+      filteredArticles
+        .map((art) => art.author?.toString())
+        .filter(Boolean)
+    );
+
+    // Include categories of the filtered articles
+    const articleCategoryIds = new Set(
+      filteredArticles
+        .map((art) => art.category?.toString())
+        .filter(Boolean)
+    );
+
+    // Combine AI-specified user IDs with those from articles
+    const allUserIds = new Set([...userIds, ...articleUserIds]);
+    const allCategoryIds = new Set([...catIds, ...articleCategoryIds]);
+
+    // Filter users and categories based on the combined IDs
+    const filteredUsers = relatedUsers.filter((user) =>
+      allUserIds.has(user._id.toString())
+    );
+    const filteredCategories = relatedCategories.filter((cat) =>
+      allCategoryIds.has(cat._id.toString())
+    );
 
     return res.status(200).json({
       status: true,
-      message: aiAnswer,
-      actions: aiActions,
-      data: aiData,
+      message: removeIdsFromText(aiMessage),
+      articles: filteredArticles,
+      users: filteredUsers,
+      categories: filteredCategories,
     });
   } catch (err) {
     console.error("[err]", err);
     return res.status(500).json({
-      message: "Something was wrong while training model",
-    });
-  }
-};
-
-exports.getQASourceData = (req, res) => {
-  try {
-    const { source } = req.params;
-    const sourceData = knowledgeData[source];
-
-    return res.status(200).json({
-      status: true,
-      qaData: sourceData,
-    });
-  } catch (err) {
-    console.error("[err]", err);
-    return res.status(500).json({
-      message: "Something was wrong while reading source information",
+      message: "Something went wrong while processing your request.",
     });
   }
 };

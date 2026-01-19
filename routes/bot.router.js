@@ -1,8 +1,9 @@
 const express = require("express");
-const botController = require("../controllers/bot.controller");
 const router = express.Router();
-const checkAuthBot = require("../middleware/check-auth-bot");
+const checkAuth = require("../middleware/check-auth");
+const botController = require("../controllers/bot.controller");
 
-router.post("/io", checkAuthBot, botController.io);
+// Ruta para interactuar con el bot
+router.post("/bot/io", checkAuth, botController.io);
 
 module.exports = router;

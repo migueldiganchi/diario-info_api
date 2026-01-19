@@ -1,97 +1,43 @@
-const NotificationModel = require("../models/notification.model");
+const Notification = require("../models/notification.model.js");
 
 exports.getNotifications = async (req, res) => {
   try {
-    const authUserId = req.userId;
-
-    const {
-      page = 1,
-      pageSize = 10,
-      term = "",
-      source = "app",
-      kind = "",
-      status,
-      isArchived,
-    } = req.query;
-
-    const { notifications, nextPage, totalNotifications } =
-      await NotificationModel.getNotificationList(
-        authUserId,
-        parseInt(page),
-        parseInt(pageSize),
-        term,
-        source,
-        kind,
-        status,
-        isArchived
-      );
-
-    res.status(200).json({
-      success: true,
-      notifications: notifications,
-      pagination: {
-        total: totalNotifications,
-        currentPage: parseInt(page),
-        pageSize: parseInt(pageSize),
-        nextPage,
-      },
+    const notifications = await Notification.find({ user: req.userId }).sort({
+      createdAt: -1,
     });
+    res.status(200).json({ success: true, notifications });
   } catch (err) {
-    console.error("[err]", err.message);
     res.status(500).json({
-      message: "Something went wrong while getting notifications",
-    });
-  }
-};
-
-exports.deleteNotification = async (req, res) => {
-  try {
-    const { id: notificationId } = req.params;
-
-    await NotificationModel.deleteNotification(notificationId);
-
-    res.status(200).json({
-      success: true,
-      message: "Notification deleted successfully",
-    });
-  } catch (err) {
-    console.error("[err]", err.message);
-    res.status(500).json({
-      message: "Something went wrong while deleting the notification",
+      message: err.message || "Error retrieving notifications.",
     });
   }
 };
 
 exports.toggleReadingStatus = async (req, res) => {
+  const id = req.params.id;
   try {
-    const { id: notificationId } = req.params;
-
-    const notification = await NotificationModel.getNotification(
-      notificationId
-    );
-
+    const notification = await Notification.findById(id);
     if (!notification) {
-      return res.status(404).json({
-        success: false,
-        message: "Notification not found",
-      });
+      return res.status(404).json({ message: "Notification not found" });
     }
-
-    const updatedNotification = await NotificationModel.toggleReadingStatus(
-      notificationId,
-      notification.readAt == null
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Notification reading status toggled successfully",
-      notification: updatedNotification,
-    });
+    notification.read = !notification.read;
+    await notification.save();
+    res.status(200).json({ success: true, notification });
   } catch (err) {
-    console.error("[err]", err.message);
     res.status(500).json({
-      message:
-        "Something went wrong while toggling the notification reading status",
+      message: err.message || "Error updating notification.",
+    });
+  }
+};
+
+exports.deleteNotification = async (req, res) => {
+  const id = req.params.id;
+  try {
+    await Notification.findByIdAndDelete(id);
+    res.status(200).json({ success: true, message: "Notification deleted" });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message || "Error deleting notification.",
     });
   }
 };
