@@ -18,7 +18,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-
 const generateAccountActivationURL = async (createdUser) => {
   return new Promise((resolve, reject) => {
     // Create new token
@@ -68,9 +67,8 @@ const handleUserActivation = async (createdUser) => {
 
     // Create activation URL
     const { email: accountActivationEmail } = createdUser;
-    const accountActivationURL = await generateAccountActivationURL(
-      createdUser
-    );
+    const accountActivationURL =
+      await generateAccountActivationURL(createdUser);
 
     // Notify user account
     const message = {
@@ -290,7 +288,7 @@ exports.signin = (req, res) => {
           userTrackingKey: loadedUser.trackingKey,
         },
         "some_super_secret_text",
-        { expiresIn: "1h" }
+        { expiresIn: "1h" },
       );
 
       // Respond to user
