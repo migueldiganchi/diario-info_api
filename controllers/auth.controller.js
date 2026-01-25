@@ -210,104 +210,81 @@ exports.activateAccount = async (req, res) => {
   }
 };
 
-exports.signin = (req, res) => {
+exports.signin = async (req, res) => {
   const errors = validationResult(req);
 
   // Server validations
   if (!errors.isEmpty()) {
-    const error = new Error("Validation failed.");
-    error.statusCode = 422;
-    error.data = errors.array();
-    throw error;
+    return res.status(422).json({
+      message: "Validation failed.",
+      data: errors.array(),
+    });
   }
 
   // Extract data from request
   const { email, password } = req.body;
 
-  let loadedUser = null;
-  let status = null;
-  let error = null;
-  let errorMessage = "";
+  try {
+    const user = await User.findOne({ email: email });
 
-  User.findOne({ email: email })
-    .then((user) => {
-      if (!user) {
-        errorMessage = `User with this email could not be found: ${email}`;
-        error = new Error(errorMessage);
-        error.statusCode = 401;
-        return res.status(error.statusCode).json({
-          message: errorMessage,
-        });
-      }
-
-      // set user with loaded user
-      loadedUser = user;
-
-      // user exists
-      return bcrypt.compare(password, user.password);
-    })
-    .then((isRightPassword) => {
-      if (!isRightPassword) {
-        errorMessage = "Wrong password!";
-        error = new Error(errorMessage);
-        error.statusCode = 403;
-        return res.status(error.statusCode).json({
-          message: errorMessage,
-        });
-      }
-
-      // Check for signup token date expiration
-      if (loadedUser && !loadedUser.signupTokenActivatedAt) {
-        const signupTokenHasExpired =
-          new Date() > loadedUser.signupTokenExpiresAt;
-
-        errorMessage = signupTokenHasExpired
-          ? `User account is not active: ${email}`
-          : "Validation token has expired";
-        error = new Error(errorMessage);
-        error.statusCode = signupTokenHasExpired ? 428 : 451;
-        return res.status(error.statusCode).json({
-          email: loadedUser.email,
-          status: status,
-          message: errorMessage,
-        });
-      } else if (!loadedUser) {
-        errorMessage = "User was not found!";
-        error = new Error(errorMessage);
-        error.statusCode = 404;
-        return res.status(error.statusCode).json({
-          message: errorMessage,
-        });
-      }
-
-      // Create app key token
-      const token = jwt.sign(
-        {
-          userId: loadedUser._id,
-          userEmail: loadedUser.email,
-          userTrackingKey: loadedUser.trackingKey,
-        },
-        "some_super_secret_text",
-        { expiresIn: "1h" },
-      );
-
-      // Respond to user
-      res.status(200).json({
-        token: token,
-        user: loadedUser,
-        userId: loadedUser._id,
-        userName: loadedUser.name,
-        userEmail: loadedUser.email,
-        userTrackingKey: loadedUser.trackingKey,
+    if (!user) {
+      return res.status(401).json({
+        message: `User with this email could not be found: ${email}`,
       });
-    })
-    .catch((err) => {
-      // User find error handler
-      console.error("[err]", err);
-      return res.status(500).json({
-        message: "Some error occourred while authentication",
+    }
+
+    const isRightPassword = await bcrypt.compare(password, user.password);
+
+    if (!isRightPassword) {
+      return res.status(403).json({
+        message: "Wrong password!",
       });
+    }
+
+    // Check for signup token date expiration
+    if (!user.signupTokenActivatedAt) {
+      const signupTokenHasExpired = new Date() > user.signupTokenExpiresAt;
+
+      const errorMessage = signupTokenHasExpired
+        ? `User account is not active: ${email}`
+        : "Validation token has expired";
+
+      const statusCode = signupTokenHasExpired ? 428 : 451;
+
+      return res.status(statusCode).json({
+        email: user.email,
+        status: null,
+        message: errorMessage,
+      });
+    }
+
+    // Create app key token
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        userEmail: user.email,
+        userTrackingKey: user.trackingKey,
+      },
+      "some_super_secret_text",
+      { expiresIn: "1h" },
+    );
+
+    // Respond to user
+    res.status(200).json({
+      token: token,
+      user: user,
+      userId: user._id,
+      userName: user.name,
+      userEmail: user.email,
+      userTrackingKey: user.trackingKey,
     });
+  } catch (err) {
+    // User find error handler
+    console.error("[err]", err);
+    return res.status(500).json({
+      message: "Some error occourred while authentication",
+    });
+  }
 };
 
 exports.signout = (req, res) => {

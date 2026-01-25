@@ -84,6 +84,8 @@ api.listen(PORT, () => {
     return;
   }
 
+  mongoose.set("strictQuery", false);
+
   mongoose
     .connect(conn, {
       serverSelectionTimeoutMS: 5000,
