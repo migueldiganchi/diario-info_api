@@ -30,7 +30,7 @@ const generateAccountActivationURL = async (createdUser) => {
       // Build activation URL
       const UI_URL = process.env.UI_URL;
       const newSignupToken = buffer.toString("hex");
-      const activationURL = `${UI_URL}/auth/new/${newSignupToken}`;
+      const activationURL = `${UI_URL}/activation/${newSignupToken}`;
       const activationTime = 7889400000; // 3 monthts
 
       // Save signup data to the user
@@ -52,12 +52,11 @@ const handleUserActivation = async (createdUser) => {
 
     // Set Welcome Notification to new User
     const welcomeNotification = new Notification({
-      toUser: createdUser,
-      message: `¡Bienvenid@ {CONSTRUCTOR-IO}! ${createdUser.name}!`,
-      title:
-        "¡Estas conectado al servicio de Notificaciones de CONSTRUCTOR-IO!",
+      user: createdUser._id,
+      message: `¡Bienvenid@ {DIARIO-INFO}! ${createdUser.name}!`,
+      title: "¡Estas conectado al servicio de Notificaciones de DIARIO-INFO!",
       details:
-        "En CONSTRUCTOR-IO podrás ayudar a cuidar el planeta usando diferentes perspectivas. Contamos con tu buena voluntad",
+        "En DIARIO-INFO podrás ayudar a cuidar el planeta usando diferentes perspectivas. Contamos con tu buena voluntad",
       kind: "success",
       createdAt: Date.now(),
     });
@@ -74,10 +73,10 @@ const handleUserActivation = async (createdUser) => {
     const message = {
       from: "hello@ciudadbotica.com",
       to: accountActivationEmail,
-      subject: "¡Bienvenido a {CONSTRUCTOR-IO}!",
+      subject: "¡Bienvenido a {DIARIO-INFO}!",
       html: `
         <h3>
-          Bienvenid@ al Equipo de {CONSTRUCTOR-IO}!
+          Bienvenid@ al Equipo de {DIARIO-INFO}!
         </h3>
         <p>
           Por favor dale click <a href="${accountActivationURL}" target="_blank">
@@ -103,6 +102,7 @@ const activateUser = async (user) => {
   user.signupTokenExpiresAt = null;
   user.signupTokenActivatedAt = new Date();
   user.trackingKey = trackingKey;
+  user.status = 1;
 
   await user.save();
 };
@@ -113,10 +113,10 @@ exports.signup = async (req, res, next) => {
 
   // Server validation
   if (!errors.isEmpty()) {
-    const error = new Error("Validation failed.");
-    error.statusCode = 422;
-    error.data = errors.array();
-    throw error;
+    return res.status(422).json({
+      message: "Validation failed.",
+      data: errors.array(),
+    });
   }
 
   const { name, email, password } = req.body;
@@ -126,6 +126,7 @@ exports.signup = async (req, res, next) => {
 
   // Check if new user email alread exists
   if (existingUser) {
+    console.log("[Signup] User already exists:", cleanEmail);
     return res.status(303).send({
       // https://www.rfc-editor.org/rfc/rfc7231#section-4.3.3
       message: "User already exists",
@@ -133,46 +134,52 @@ exports.signup = async (req, res, next) => {
   }
 
   // Create Password
-  bcrypt
-    .hash(password, 12)
-    .then((hashedPassword) => {
-      const newUser = new User({
-        name: name,
-        email: email,
-        password: hashedPassword,
-      });
+  try {
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Save user into DB
-      return newUser
-        .save()
-        .then(async (createdUser) => {
-          // Activate User
-          await handleUserActivation(createdUser);
+    // Generate Alias
+    const randomSuffix = crypto.randomBytes(3).toString("hex");
+    const baseAlias = name
+      .split(" ")[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const alias = `${baseAlias}-${randomSuffix}`;
 
-          // Respond to the user
-          res.status(201).json({
-            success: true,
-            message: `User ${createdUser.name} was created successfuly`,
-            user: createdUser,
-          });
-        })
-        .catch((err) => {
-          // Database error handler
-          console.error("[err]", err);
-          res.status(500).send({
-            message:
-              err.message || "Something went wrong while creating the User.",
-          });
-        });
-    })
-    .catch((err) => {
-      console.error("[err]", err);
-      // Password creator error handler
-      console.log("[err]", err);
-      res.status(500).json({
-        message: "There was an error while create the account",
-      });
+    const newUser = new User({
+      name: name,
+      email: email,
+      password: hashedPassword,
+      alias: alias,
     });
+
+    // Save user into DB
+    const createdUser = await newUser.save();
+    console.log("[Signup] User created in DB:", createdUser._id);
+
+    // Activate User
+    try {
+      await handleUserActivation(createdUser);
+    } catch (activationError) {
+      console.error(
+        "[Signup] Activation failed. Deleting user to prevent inconsistency.",
+        activationError,
+      );
+      await User.findByIdAndDelete(createdUser._id);
+      throw activationError;
+    }
+
+    // Respond to the user
+    res.status(201).json({
+      success: true,
+      message: `User ${createdUser.name} was created successfuly`,
+      user: createdUser,
+    });
+  } catch (err) {
+    console.error("[err]", err);
+    res.status(500).json({
+      message: err.message || "There was an error while create the account",
+    });
+  }
 };
 
 exports.activateAccount = async (req, res) => {
@@ -184,6 +191,9 @@ exports.activateAccount = async (req, res) => {
       signupToken: signupToken,
       signupTokenExpiresAt: { $gt: new Date() },
     });
+
+    console.log("[activateAccount] Activating user with token:", signupToken);
+    console.log("[activateAccount] User:", user);
 
     // If the user doesn't exist => token is not valid
     if (!user) {
@@ -381,7 +391,7 @@ exports.reset = (req, res) => {
       const user = await User.findOne({ email: email });
       const resetBaseURL = process.env.UI_URL;
       const resetURL = `${resetBaseURL}/auth/reset/${newResetToken}`;
-      const resetAppName = "CONSTRUCTOR-IO";
+      const resetAppName = "DIARIO-INFO";
       const resetAppEmail = "hello@ciudadbotica.com";
 
       if (!user) {

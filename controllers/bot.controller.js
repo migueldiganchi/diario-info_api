@@ -24,8 +24,8 @@ const getGenAIAnswer = async (userMessage) => {
 const createCombinedPrompt = (userMessage, articles, categories, users) => {
   // Base introduction and instructions for the bot
   let prompt = `Tu nombre es BOT El Constructor.
-  Eres el Representante Virtual de Constructor-IO, una plataforma dedicada a proveer productos y servicios relacionados con la construcción, domótica e inmobiliaria.
-  Constructor-IO utiliza Inteligencia Artificial para recomendar productos y servicios a través de conversaciones con los usuarios. El usuario ha enviado el siguiente mensaje: "${userMessage}". 
+  Eres el Representante Virtual de DIARIO-INFO, una plataforma dedicada a proveer productos y servicios relacionados con la construcción, domótica e inmobiliaria.
+  DIARIO-INFO utiliza Inteligencia Artificial para recomendar productos y servicios a través de conversaciones con los usuarios. El usuario ha enviado el siguiente mensaje: "${userMessage}". 
   Aquí tienes información sobre artículos, categorías y usuarios que podrían estar relacionados con el mensaje del usuario. A continuación, analiza la información y responde al usuario de forma apropiada, además de identificar los IDs de los elementos relacionados.\n\n`;
 
   // Presenting articles

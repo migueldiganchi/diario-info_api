@@ -88,7 +88,8 @@ api.listen(PORT, () => {
 
   mongoose
     .connect(conn, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000,
+      family: 4,
     })
     .then(() => {
       console.log("✅ MongoDB connected");
