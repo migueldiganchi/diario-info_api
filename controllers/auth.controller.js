@@ -233,7 +233,7 @@ exports.signin = async (req, res) => {
   }
 
   // Extract data from request
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
 
   try {
     const user = await User.findOne({ email: email });
@@ -269,6 +269,9 @@ exports.signin = async (req, res) => {
       });
     }
 
+    // Determine token expiration based on rememberMe flag
+    const tokenExpiration = rememberMe ? "90d" : "1h";
+
     // Create app key token
     const token = jwt.sign(
       {
@@ -277,7 +280,7 @@ exports.signin = async (req, res) => {
         userTrackingKey: user.trackingKey,
       },
       "some_super_secret_text",
-      { expiresIn: "1h" },
+      { expiresIn: tokenExpiration },
     );
 
     // Respond to user
