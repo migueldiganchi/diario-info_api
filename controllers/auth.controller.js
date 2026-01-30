@@ -150,7 +150,10 @@ exports.signup = async (req, res, next) => {
       email: email,
       password: hashedPassword,
       alias: alias,
-      role: "Editor",
+      role: "Reader",
+      createdAt: Date.now(),
+      signupToken: null,
+      signupTokenExpiresAt: null
     });
 
     // Save user into DB
@@ -208,7 +211,7 @@ exports.activateAccount = async (req, res) => {
 
     // Respond to the user
     res.status(200).json({
-      status: true,
+      success: true,
       message: "Your account has been activated successfully",
       user: user,
     });
@@ -460,7 +463,7 @@ exports.validatePasswordReset = async (req, res) => {
     }
 
     res.status(200).json({
-      status: true,
+      success: true,
       user: user,
     });
   } catch (err) {
