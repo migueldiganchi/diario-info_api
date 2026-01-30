@@ -150,6 +150,7 @@ exports.signup = async (req, res, next) => {
       email: email,
       password: hashedPassword,
       alias: alias,
+      role: "Editor",
     });
 
     // Save user into DB
@@ -313,10 +314,11 @@ exports.signout = (req, res) => {
 };
 
 exports.me = async (req, res) => {
+  console.log("[me] Getting authenticated user info for:", req.userId);
   try {
     // Clear all cookies
     const myUserId = req.userId;
-    const myUser = await User.findById(myUserId).populate("seller");
+    const myUser = await User.findById(myUserId);
 
     // Respond to user
     res.status(200).json({
@@ -378,6 +380,7 @@ exports.updateAuthUser = async (req, res) => {
 
 exports.reset = (req, res) => {
   const { email } = req.body;
+
   try {
     // Reset password here
     crypto.randomBytes(32, async (err, buffer) => {
@@ -390,7 +393,7 @@ exports.reset = (req, res) => {
       const newResetToken = buffer.toString("hex");
       const user = await User.findOne({ email: email });
       const resetBaseURL = process.env.UI_URL;
-      const resetURL = `${resetBaseURL}/auth/reset/${newResetToken}`;
+      const resetURL = `${resetBaseURL}/new-password/${newResetToken}`;
       const resetAppName = "DIARIO-INFO";
       const resetAppEmail = "hello@ciudadbotica.com";
 

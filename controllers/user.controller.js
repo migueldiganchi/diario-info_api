@@ -4,14 +4,14 @@ const Article = require("../models/article.model.js");
 
 const getUserByUnique = async (userId, res) => {
   let user = await User.findOne({ alias: userId }).select(
-    "_id pictureUrl name alias bio email phone mobile locationAddress locationCountry locationCity",
+    "_id pictureUrl name lastName alias bio email phone locationAddress locationCountry locationCity",
   );
 
   // If Alias doesn't Work, find with Id
   if (!user) {
     // Get User by Id
     user = await User.findById(userId).select(
-      "_id pictureUrl name alias bio email phone mobile locationAddress locationCountry locationCity",
+      "_id pictureUrl name lastName alias bio email phone locationAddress locationCountry locationCity",
     );
   }
 
@@ -91,6 +91,9 @@ exports.getUsers = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(pageSize)
       .skip(pageSize * (page - 1))
+      .select(
+        "_id name lastName alias pictureUrl bio locationCity locationCountry",
+      )
       .exec();
     const total = await User.countDocuments(queryConditions);
     const totalPages = Math.ceil(total / pageSize);
