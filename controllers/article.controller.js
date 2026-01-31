@@ -3,8 +3,8 @@ const Article = require("../models/article.model.js");
 // Create and Save a new Article
 exports.createArticle = async (req, res) => {
   // Validate request
-  if (!req.body.title) {
-    return res.status(400).send({ message: "Content can not be empty!" });
+  if (!req.body) {
+    return res.status(400).send({ message: "Content cannot be empty!" });
   }
 
   // Create an Article
@@ -12,14 +12,17 @@ exports.createArticle = async (req, res) => {
     title: req.body.title,
     description: req.body.description,
     content: req.body.content,
-    contentBlocks: req.body.contentBlocks,
     imageId: req.body.imageId,
     category: req.body.category,
-    status: req.body.status,
-    isHighlighted: req.body.isHighlighted,
-    author: req.body.author || req.userId, // Asigna el usuario autenticado si está disponible
-    articleDate: req.body.articleDate,
-    commentsDisabled: req.body.commentsDisabled,
+    status: req.body.status || "draft",
+    isHighlighted: req.body.isHighlighted || false,
+    author: req.body.author,
+    date: req.body.date,
+    location: req.body.location,
+    publicationDate: req.body.publicationDate,
+    commentsDisabled: req.body.commentsDisabled || false,
+    embeddedVideoUrl: req.body.embeddedVideoUrl,
+    keyPoints: req.body.keyPoints,
     priority: req.body.priority,
     destination: req.body.destination,
     validityHours: req.body.validityHours,
@@ -30,7 +33,7 @@ exports.createArticle = async (req, res) => {
   // Save Article in the database
   try {
     const data = await article.save();
-    res.send(data);
+    res.status(201).send(data);
   } catch (err) {
     res.status(500).send({
       message: err.message || "Some error occurred while creating the Article.",
@@ -57,8 +60,8 @@ exports.getArticles = async (req, res) => {
   }
 
   try {
-    // Ordenamos por articleDate descendente (lo más nuevo primero)
-    const data = await Article.find(condition).sort({ articleDate: -1 });
+    // Sort by createdAt descending (newest first)
+    const data = await Article.find(condition).sort({ createdAt: -1 });
     res.send(data);
   } catch (err) {
     res.status(500).send({
@@ -94,7 +97,7 @@ exports.updateArticle = async (req, res) => {
   try {
     const data = await Article.findByIdAndUpdate(id, req.body, {
       useFindAndModify: false,
-      new: true, // Devuelve el documento modificado
+      new: true, // Returns the modified document
     });
     if (!data) {
       res.status(404).send({

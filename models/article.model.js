@@ -1,24 +1,11 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-// Corresponde a la definición de Article
 const ArticleSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
-    content: { type: String, required: true },
-    contentBlocks: [
-      {
-        // El orden visual se determina por la posición (índice) en este array
-        type: {
-          type: String,
-          enum: ["text", "image", "video"],
-          required: true,
-        },
-        value: { type: String, required: true },
-        _id: false,
-      },
-    ],
+    content: { type: String, required: true }, // Replaces contentBlocks
     imageId: { type: String, required: true },
     category: { type: String, required: true },
     status: {
@@ -28,35 +15,45 @@ const ArticleSchema = new Schema(
       default: "draft",
     },
     isHighlighted: { type: Boolean, default: false },
-    author: { type: Schema.Types.ObjectId, ref: "User" },
-    articleDate: { type: Date, default: Date.now },
+    author: { type: String },
+    date: { type: String },
+    location: { type: String },
+    publicationDate: { type: Date },
     commentsDisabled: { type: Boolean, default: false },
+    embeddedVideoUrl: { type: String },
+    keyPoints: [{ type: String }],
     priority: {
       type: String,
       required: true,
-      enum: ["Baja", "Media", "Alta", "Muy Alta"],
-      default: "Media",
     },
     destination: {
       type: String,
       required: true,
-      enum: ["general", "analisis", "especial", "ultimomomento", "tuaiyu"],
-      default: "general",
     },
-    validityHours: { type: Number, default: 6 },
+    validityHours: { type: Number, default: 24 },
     tags: { type: [String], index: true },
-    articleType: { type: String, default: "General" },
+    articleType: { type: String, required: true },
   },
   {
-    timestamps: true, // Esto añade createdAt y updatedAt automáticamente
+    timestamps: true, // Automatically adds createdAt and updatedAt
   },
 );
 
-// Índices para optimizar las consultas más comunes
-ArticleSchema.index({ status: 1, articleDate: -1 });
+// Transform _id to id for frontend compatibility
+ArticleSchema.set("toJSON", {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) {
+    ret.id = ret._id;
+    delete ret._id;
+  },
+});
+
+// Indexes to optimize common queries
+ArticleSchema.index({ status: 1, createdAt: -1 });
 ArticleSchema.index({ category: 1, status: 1 });
 
-// Evita que Mongoose compile el modelo más de una vez
+// Prevent Mongoose from compiling the model more than once
 const Article =
   mongoose.models.Article || mongoose.model("Article", ArticleSchema);
 
