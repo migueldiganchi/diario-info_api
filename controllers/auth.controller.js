@@ -298,6 +298,13 @@ exports.signin = async (req, res) => {
   } catch (err) {
     // User find error handler
     console.error("[err]", err);
+
+    if (err.name === "MongooseServerSelectionError") {
+      return res.status(503).json({
+        message: "Database connection failed. Please check your network or IP whitelist.",
+      });
+    }
+
     return res.status(500).json({
       message: "Some error occourred while authentication",
     });

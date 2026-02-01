@@ -10,12 +10,6 @@ const categorySchema = new Schema({
   parent: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
 });
 
-let categoryModel = null;
+const Category = mongoose.models.Category || mongoose.model("Category", categorySchema);
 
-try {
-  categoryModel = mongoose.model("Category");
-} catch (error) {
-  categoryModel = mongoose.model("Category", categorySchema);
-}
-
-module.exports = categoryModel;
+module.exports = Category;

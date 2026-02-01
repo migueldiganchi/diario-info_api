@@ -12,12 +12,6 @@ const qualificationSchema = new Schema({
   disabledAt: { type: Date, default: null },
 });
 
-let qualificationModel = null;
+const Qualification = mongoose.models.Qualification || mongoose.model("Qualification", qualificationSchema);
 
-try {
-  qualificationModel = mongoose.model("Qualification");
-} catch (error) {
-  qualificationModel = mongoose.model("Qualification", qualificationSchema);
-}
-
-module.exports = qualificationModel;
+module.exports = Qualification;

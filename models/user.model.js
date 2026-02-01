@@ -69,12 +69,6 @@ userSchema.index({
   locationCity: "text",
 });
 
-let userModel = null;
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
-try {
-  userModel = mongoose.model("User");
-} catch (error) {
-  userModel = mongoose.model("User", userSchema);
-}
-
-module.exports = userModel;
+module.exports = User;

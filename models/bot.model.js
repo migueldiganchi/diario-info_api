@@ -100,12 +100,6 @@ const botSchema = new Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 });
 
-let botModel = null;
+const Bot = mongoose.models.Bot || mongoose.model("Bot", botSchema);
 
-try {
-  botModel = mongoose.model("Bot");
-} catch (error) {
-  botModel = mongoose.model("Bot", botSchema);
-}
-
-module.exports = botModel;
+module.exports = Bot;
