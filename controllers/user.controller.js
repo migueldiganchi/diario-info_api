@@ -1,6 +1,9 @@
 const User = require("../models/user.model.js");
 const Qualification = require("../models/qualification.model.js");
 const Article = require("../models/article.model.js");
+const Log = require("../models/log.model.js");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const getUserByUnique = async (userId, res) => {
   let user = await User.findOne({ alias: userId }).select(
@@ -110,6 +113,73 @@ exports.getUsers = async (req, res) => {
     console.info("[err]", err);
     return res.status(500).send({
       message: err.message || "Something went wrong while fetching all users.",
+    });
+  }
+};
+
+exports.createUser = async (req, res) => {
+  const { name, email, password, role, bio, locationCountry, locationCity } = req.body;
+
+  try {
+    // Check permissions
+    const adminUser = await User.findById(req.userId);
+    if (!adminUser || !adminUser.isAdmin()) {
+      return res.status(403).json({
+        message: "You do not have permission to perform this action.",
+      });
+    }
+
+    // Check if user exists
+    const existingUser = await User.findOne({ email: email });
+    if (existingUser) {
+      return res.status(400).json({
+        message: "User already exists with this email.",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Generate Alias
+    const randomSuffix = crypto.randomBytes(3).toString("hex");
+    const baseAlias = name
+      .split(" ")[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const alias = `${baseAlias}-${randomSuffix}`;
+
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role: role || "Reader",
+      alias,
+      bio,
+      locationCountry,
+      locationCity,
+      createdAt: Date.now(),
+      status: 1, // Active
+    });
+
+    const savedUser = await newUser.save();
+
+    // Log action
+    const log = new Log({
+      user: req.userId,
+      action: "USER_CREATED",
+      details: `User ${savedUser.email} (${savedUser._id}) created by Admin`,
+    });
+    await log.save();
+
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      user: savedUser,
+    });
+  } catch (err) {
+    console.error("[createUser]", err);
+    res.status(500).json({
+      message: err.message || "Error creating user",
     });
   }
 };

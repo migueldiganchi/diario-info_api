@@ -3,8 +3,11 @@ const router = express.Router();
 const checkAuth = require("../middleware/check-auth");
 const userController = require("./../controllers/user.controller");
 
-// Create a new User
+// Retrieve all Users
 router.get("/users", [], userController.getUsers);
+
+// Create a new User (Admin)
+router.post("/users", checkAuth, userController.createUser);
 
 // Retrieve a single User with id
 router.get("/user/:id", [], userController.getUser);
