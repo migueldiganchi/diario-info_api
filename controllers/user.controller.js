@@ -185,6 +185,114 @@ exports.createUser = async (req, res) => {
   }
 };
 
+exports.updateUserStatus = async (req, res) => {
+  const userIdToUpdate = req.params.id;
+  const { status } = req.body;
+
+  try {
+    // Check permissions
+    const adminUser = await User.findById(req.userId);
+    if (!adminUser || !adminUser.isAdmin()) {
+      return res.status(403).json({
+        message: "You do not have permission to perform this action.",
+      });
+    }
+
+    // Validate status
+    const newStatus = Number(status);
+    if (status === undefined || ![0, 1].includes(newStatus)) {
+      return res.status(400).json({
+        message:
+          "Invalid status provided. Status must be 0 (inactive) or 1 (active).",
+      });
+    }
+
+    const userToUpdate = await User.findById(userIdToUpdate);
+    if (!userToUpdate) {
+      return res.status(404).json({
+        message: `User was not found with userId: ${userIdToUpdate}`,
+      });
+    }
+
+    // Prevent admin from deactivating themselves
+    if (userToUpdate._id.toString() === req.userId) {
+      return res.status(400).json({
+        message: "You cannot change your own status.",
+      });
+    }
+
+    userToUpdate.status = newStatus;
+    userToUpdate.disabledAt = newStatus === 1 ? null : new Date();
+
+    const updatedUser = await userToUpdate.save();
+
+    // Log action
+    const log = new Log({
+      user: req.userId,
+      action: "USER_STATUS_UPDATED",
+      details: `User ${updatedUser.email} (${updatedUser._id}) status changed to ${updatedUser.status} by Admin ${adminUser.email}`,
+    });
+    await log.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User status updated successfully.",
+    });
+  } catch (err) {
+    console.error("[updateUserStatus]", err);
+    res.status(500).json({
+      message: err.message || "Error updating user status",
+    });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  const userIdToDelete = req.params.id;
+
+  try {
+    // Check permissions
+    const adminUser = await User.findById(req.userId);
+    if (!adminUser || !adminUser.isAdmin()) {
+      return res.status(403).json({
+        message: "You do not have permission to perform this action.",
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (userIdToDelete === req.userId) {
+      return res.status(400).json({
+        message: "You cannot delete your own account.",
+      });
+    }
+
+    const deletedUser = await User.findByIdAndDelete(userIdToDelete);
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        message: `User was not found with userId: ${userIdToDelete}`,
+      });
+    }
+
+    // Log action
+    const log = new Log({
+      user: req.userId,
+      action: "USER_DELETED",
+      details: `User ${deletedUser.email} (${deletedUser._id}) was deleted by Admin ${adminUser.email}`,
+    });
+    await log.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully.",
+    });
+  } catch (err) {
+    console.error("[deleteUser]", err);
+    res.status(500).json({
+      message: err.message || "Error deleting user",
+    });
+  }
+};
+
 exports.createUserQualification = async (req, res) => {
   const fromUserId = req.userId;
   const { toUserId, rating, comment } = req.body;

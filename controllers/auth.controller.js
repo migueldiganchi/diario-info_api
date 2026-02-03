@@ -264,6 +264,12 @@ exports.signin = async (req, res) => {
       });
     }
 
+    if (user.status === 0) {
+      return res.status(403).json({
+        message: "This user account has been deactivated.",
+      });
+    }
+
     const isRightPassword = await bcrypt.compare(password, user.password);
 
     if (!isRightPassword) {

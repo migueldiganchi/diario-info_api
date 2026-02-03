@@ -41,9 +41,9 @@ api.use(express.json());
 // =======================
 // Routes
 // =======================
+api.use(require("./routes/auth.router"));
 api.use(require("./routes/user.router"));
 api.use(require("./routes/article.router"));
-api.use(require("./routes/auth.router"));
 api.use(require("./routes/notification.router"));
 api.use(require("./routes/bot.router"));
 

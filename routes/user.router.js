@@ -4,7 +4,7 @@ const checkAuth = require("../middleware/check-auth");
 const userController = require("./../controllers/user.controller");
 
 // Retrieve all Users
-router.get("/users", [], userController.getUsers);
+router.get("/users", checkAuth, userController.getUsers);
 
 // Create a new User (Admin)
 router.post("/users", checkAuth, userController.createUser);
@@ -12,7 +12,13 @@ router.post("/users", checkAuth, userController.createUser);
 // Retrieve a single User with id
 router.get("/user/:id", [], userController.getUser);
 
-// Update a User with id
+// Update a User's status (Admin)
+router.patch("/user/:id/status", checkAuth, userController.updateUserStatus);
+
+// Delete a User (Admin)
+router.delete("/user/:id", checkAuth, userController.deleteUser);
+
+// Retrieve a user's articles
 router.get("/user/:id/articles", [], userController.getUserArticles);
 
 // User Qualifications
