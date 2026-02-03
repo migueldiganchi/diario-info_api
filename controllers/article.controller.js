@@ -1,4 +1,5 @@
 const Article = require("../models/article.model.js");
+const Log = require("../models/log.model.js");
 
 // Create and Save a new Article
 exports.createArticle = async (req, res) => {
@@ -33,6 +34,16 @@ exports.createArticle = async (req, res) => {
   // Save Article in the database
   try {
     const data = await article.save();
+
+    // Log action
+    if (req.userId) {
+      const log = new Log({
+        user: req.userId,
+        action: "ARTICLE_CREATED",
+        details: `Article ${data._id} created`,
+      });
+      await log.save();
+    }
     res.status(201).send(data);
   } catch (err) {
     res.status(500).send({
@@ -103,7 +114,18 @@ exports.updateArticle = async (req, res) => {
       res.status(404).send({
         message: `Cannot update Article with id=${id}. Maybe Article was not found!`,
       });
-    } else res.send(data);
+    } else {
+      // Log action
+      if (req.userId) {
+        const log = new Log({
+          user: req.userId,
+          action: "ARTICLE_UPDATED",
+          details: `Article ${id} updated`,
+        });
+        await log.save();
+      }
+      res.send(data);
+    }
   } catch (err) {
     res.status(500).send({
       message: "Error updating Article with id=" + id,
@@ -122,6 +144,15 @@ exports.deleteArticle = async (req, res) => {
         message: `Cannot delete Article with id=${id}. Maybe Article was not found!`,
       });
     } else {
+      // Log action
+      if (req.userId) {
+        const log = new Log({
+          user: req.userId,
+          action: "ARTICLE_DELETED",
+          details: `Article ${id} deleted`,
+        });
+        await log.save();
+      }
       res.send({
         message: "Article was deleted successfully!",
       });

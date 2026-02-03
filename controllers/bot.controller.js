@@ -2,6 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const User = require("../models/user.model.js");
 const Article = require("../models/article.model.js");
 const Category = require("../models/category.model.js");
+const Log = require("../models/log.model.js");
 
 const genAIKey = process.env.GENIMI_API_KEY;
 const genAIModel = "gemini-2.5-flash";
@@ -151,6 +152,16 @@ exports.io = async (req, res) => {
     const filteredCategories = relatedCategories.filter((cat) =>
       allCategoryIds.has(cat._id.toString())
     );
+
+    // Log action
+    if (userId) {
+      const log = new Log({
+        user: userId,
+        action: "BOT_INTERACTION",
+        details: `User ${userId} interacted with bot. Message: ${userMessage.substring(0, 100)}`,
+      });
+      await log.save();
+    }
 
     return res.status(200).json({
       status: true,

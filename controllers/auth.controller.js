@@ -1,5 +1,6 @@
 const User = require("../models/user.model.js");
 const Notification = require("../models/notification.model.js");
+const Log = require("../models/log.model.js");
 
 const API_ENVIRONMENT = process.env.API_ENVIRONMENT;
 const isProduction = API_ENVIRONMENT && API_ENVIRONMENT == "production";
@@ -160,6 +161,14 @@ exports.signup = async (req, res, next) => {
     const createdUser = await newUser.save();
     console.log("[Signup] User created in DB:", createdUser._id);
 
+    // Log action
+    const log = new Log({
+      user: createdUser._id,
+      action: "USER_SIGNUP",
+      details: `User ${createdUser.email} signed up`,
+    });
+    await log.save();
+
     // Activate User
     try {
       await handleUserActivation(createdUser);
@@ -208,6 +217,14 @@ exports.activateAccount = async (req, res) => {
 
     // Set signup data
     await activateUser(user);
+
+    // Log action
+    const log = new Log({
+      user: user._id,
+      action: "USER_ACTIVATED",
+      details: `User ${user.email} activated account`,
+    });
+    await log.save();
 
     // Respond to the user
     res.status(200).json({
@@ -285,6 +302,14 @@ exports.signin = async (req, res) => {
       "some_super_secret_text",
       { expiresIn: tokenExpiration },
     );
+
+    // Log action
+    const log = new Log({
+      user: user._id,
+      action: "USER_LOGIN",
+      details: `User ${user.email} logged in`,
+    });
+    await log.save();
 
     // Respond to user
     res.status(200).json({
@@ -379,6 +404,14 @@ exports.updateAuthUser = async (req, res) => {
     userToUpdate.paymentDetails = paymentDetails;
     const updatedUser = await userToUpdate.save();
 
+    // Log action
+    const log = new Log({
+      user: updatedUser._id,
+      action: "USER_UPDATED",
+      details: `User ${updatedUser._id} updated profile`,
+    });
+    await log.save();
+
     res.status(201).json({
       status: true,
       userId: updatedUser._id,
@@ -420,6 +453,14 @@ exports.reset = (req, res) => {
       user.resetToken = newResetToken;
       user.resetTokenExpiresAt = Date.now() + 10800000; // One hour from now
       await user.save();
+
+      // Log action
+      const log = new Log({
+        user: user._id,
+        action: "PASSWORD_RESET_REQUEST",
+        details: `Password reset requested for ${email}`,
+      });
+      await log.save();
 
       // Send User Activation
       const message = {
@@ -502,6 +543,14 @@ exports.createPassword = async (req, res) => {
     user.resetToken = null;
     user.resetTokenExpiresAt = null;
     await user.save();
+
+    // Log action
+    const log = new Log({
+      user: user._id,
+      action: "PASSWORD_RESET_COMPLETED",
+      details: `Password reset completed for user ${user._id}`,
+    });
+    await log.save();
 
     res.status(200).json({
       success: true,

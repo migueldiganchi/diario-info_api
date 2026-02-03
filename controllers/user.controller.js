@@ -118,7 +118,8 @@ exports.getUsers = async (req, res) => {
 };
 
 exports.createUser = async (req, res) => {
-  const { name, email, password, role, bio, locationCountry, locationCity } = req.body;
+  const { name, email, password, role, bio, locationCountry, locationCity } =
+    req.body;
 
   try {
     // Check permissions
@@ -201,6 +202,14 @@ exports.createUserQualification = async (req, res) => {
     // Save New Qualification
     const createdQualification = await newQualification.save();
 
+    // Log action
+    const log = new Log({
+      user: fromUserId,
+      action: "QUALIFICATION_CREATED",
+      details: `User ${fromUserId} rated User ${toUserId} with ${rating}`,
+    });
+    await log.save();
+
     // Respond to the User
     res.status(201).json({
       success: true,
@@ -241,6 +250,14 @@ exports.updateUserQualification = async (req, res) => {
     qualificationToUpdate.rating = rating;
     qualificationToUpdate.updatedAt = Date.now();
     const updatedQualification = await qualificationToUpdate.save();
+
+    // Log action
+    const log = new Log({
+      user: fromUserId,
+      action: "QUALIFICATION_UPDATED",
+      details: `User ${fromUserId} updated rating for User ${toUserId}`,
+    });
+    await log.save();
 
     return res.status(201).json({
       success: true,
