@@ -185,6 +185,79 @@ exports.createUser = async (req, res) => {
   }
 };
 
+exports.updateUser = async (req, res) => {
+  const userIdToUpdate = req.params.id;
+  const {
+    name,
+    alias,
+    bio,
+    locationCountry,
+    locationCity,
+    phone,
+    pictureUrl,
+    role,
+  } = req.body;
+
+  try {
+    // Check permissions
+    const requester = await User.findById(req.userId);
+    if (!requester) {
+      return res.status(403).json({
+        message: "Access denied.",
+      });
+    }
+
+    // Allow if admin or if updating self
+    if (!requester.isAdmin() && requester._id.toString() !== userIdToUpdate) {
+      return res.status(403).json({
+        message: "You do not have permission to perform this action.",
+      });
+    }
+
+    const userToUpdate = await User.findById(userIdToUpdate);
+    if (!userToUpdate) {
+      return res.status(404).json({
+        message: `User was not found with userId: ${userIdToUpdate}`,
+      });
+    }
+
+    // Update fields
+    if (name) userToUpdate.name = name;
+    if (alias) userToUpdate.alias = alias;
+    if (bio) userToUpdate.bio = bio;
+    if (locationCountry) userToUpdate.locationCountry = locationCountry;
+    if (locationCity) userToUpdate.locationCity = locationCity;
+    if (phone) userToUpdate.phone = phone;
+    if (pictureUrl) userToUpdate.pictureUrl = pictureUrl;
+
+    // Only Admin can update role
+    if (role && requester.isAdmin()) {
+      userToUpdate.role = role;
+    }
+
+    const updatedUser = await userToUpdate.save();
+
+    // Log action
+    const log = new Log({
+      user: req.userId,
+      action: "USER_UPDATED",
+      details: `User ${updatedUser.email} (${updatedUser._id}) updated by ${requester.email}`,
+    });
+    await log.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("[updateUser]", err);
+    res.status(500).json({
+      message: err.message || "Error updating user",
+    });
+  }
+};
+
 exports.updateUserStatus = async (req, res) => {
   const userIdToUpdate = req.params.id;
   const { status } = req.body;

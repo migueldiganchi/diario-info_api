@@ -12,6 +12,9 @@ router.post("/users", checkAuth, userController.createUser);
 // Retrieve a single User with id
 router.get("/user/:id", [], userController.getUser);
 
+// Update a User with id
+router.put("/user/:id", checkAuth, userController.updateUser);
+
 // Update a User's status (Admin)
 router.patch("/user/:id/status", checkAuth, userController.updateUserStatus);
 
