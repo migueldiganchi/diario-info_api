@@ -7,7 +7,7 @@ const articles = require("../controllers/article.controller.js");
 router.post("/articles", checkAuth, articles.createArticle);
 
 // Retrieve all Articles
-router.get("/articles", [], articles.getArticles);
+router.get("/articles", checkAuth, articles.getArticles);
 
 // Retrieve a single Article with id
 router.get("/article/:id", [], articles.getArticle);

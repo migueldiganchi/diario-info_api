@@ -55,6 +55,8 @@ exports.createArticle = async (req, res) => {
 // Retrieve all Articles from the database.
 exports.getArticles = async (req, res) => {
   const { title, status, category, destination } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
   const condition = {};
 
   if (title) {
@@ -71,9 +73,23 @@ exports.getArticles = async (req, res) => {
   }
 
   try {
+    const total = await Article.countDocuments(condition);
+    const totalPages = Math.ceil(total / pageSize);
+    const nextPage = page + 1 <= totalPages ? page + 1 : null;
+
     // Sort by createdAt descending (newest first)
-    const data = await Article.find(condition).sort({ createdAt: -1 });
-    res.send(data);
+    const articles = await Article.find(condition)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize);
+
+    res.send({
+      success: true,
+      articles,
+      total,
+      totalPages,
+      nextPage,
+    });
   } catch (err) {
     res.status(500).send({
       message: err.message || "Some error occurred while retrieving articles.",
