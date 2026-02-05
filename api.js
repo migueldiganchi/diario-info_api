@@ -3,6 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const mongoose = require("mongoose");
+const path = require("path");
 
 const api = express();
 
@@ -39,10 +40,16 @@ api.use((req, res, next) => {
 api.use(express.json());
 
 // =======================
+// Static Files
+// =======================
+api.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// =======================
 // Routes
 // =======================
 api.use(require("./routes/auth.router"));
 api.use(require("./routes/user.router"));
+api.use(require("./routes/file.router"));
 api.use(require("./routes/article.router"));
 api.use(require("./routes/notification.router"));
 api.use(require("./routes/bot.router"));

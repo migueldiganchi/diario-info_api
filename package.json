@@ -16,6 +16,7 @@
     "node-nlp": "^4.24.0",
     "nodemailer": "^7.0.5",
     "openai": "^3.1.0",
+    "sharp": "^0.34.5",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
