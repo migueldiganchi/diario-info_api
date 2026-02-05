@@ -1,5 +1,4 @@
 const File = require("../models/file.model.js");
-const multer = require("multer");
 const path = require("path");
 const fs = require("fs").promises;
 let sharp;
@@ -9,43 +8,6 @@ try {
   console.warn("⚠️ Módulo 'sharp' no encontrado. El procesamiento de imágenes se omitirá.");
 }
 
-// Configuración de Multer
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, "../../uploads/files");
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (error) {
-      cb(error, null);
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueSuffix}${ext}`);
-  },
-});
-
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp|svg/;
-  const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase(),
-  );
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    cb(new Error("Solo se permiten archivos de imagen"));
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: fileFilter,
-});
 
 // Generar thumbnail
 const generateThumbnail = async (filePath, thumbnailPath) => {
@@ -147,9 +109,7 @@ exports.getFileById = async (req, res) => {
 };
 
 // POST /api/files/upload - Subir archivo
-exports.uploadFile = [
-  upload.single("file"),
-  async (req, res) => {
+exports.uploadFile = async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({
@@ -162,7 +122,7 @@ exports.uploadFile = [
       const userId = req.userId;
 
       const filePath = req.file.path;
-      const fileUrl = `/uploads/files/${req.file.filename}`;
+      const fileUrl = `/uploads/${req.file.filename}`;
 
       // Generar thumbnail
       const thumbnailFilename = `thumb_${req.file.filename}`;
@@ -172,7 +132,7 @@ exports.uploadFile = [
       );
 
       const thumbCreated = await generateThumbnail(filePath, thumbnailPath);
-      const thumbnailUrl = thumbCreated ? `/uploads/files/${thumbnailFilename}` : null;
+      const thumbnailUrl = thumbCreated ? `/uploads/${thumbnailFilename}` : null;
 
       // Obtener dimensiones
       const dimensions = await getImageDimensions(filePath);
@@ -205,8 +165,7 @@ exports.uploadFile = [
         message: "Error al subir archivo",
       });
     }
-  },
-];
+  };
 
 // PUT /api/file/:id - Actualizar descripción del archivo
 exports.updateFile = async (req, res) => {
