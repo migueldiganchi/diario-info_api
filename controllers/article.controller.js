@@ -1,5 +1,6 @@
 const Article = require("../models/article.model.js");
 const Log = require("../models/log.model.js");
+const User = require("../models/user.model.js");
 
 // Create and Save a new Article
 exports.createArticle = async (req, res) => {
@@ -54,7 +55,8 @@ exports.createArticle = async (req, res) => {
 
 // Retrieve all Articles from the database.
 exports.getArticles = async (req, res) => {
-  const { title, status, category, destination } = req.query;
+  // For admins or own user's articles
+  const { title, status, category, destination, author } = req.query;
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
   const condition = {};
@@ -73,16 +75,30 @@ exports.getArticles = async (req, res) => {
   }
 
   try {
+    const requester = await User.findById(req.userId);
+
+    // If user is not an admin, they can only see their own articles.
+    if (!requester || !requester.isAdmin()) {
+      condition.author = req.userId;
+    } else if (author) {
+      // Admin can filter by author
+      condition.author = author;
+    }
+
     const total = await Article.countDocuments(condition);
     const totalPages = Math.ceil(total / pageSize);
     const nextPage = page + 1 <= totalPages ? page + 1 : null;
 
-    // Sort by createdAt descending (newest first)
-    const articles = await Article.find(condition)
+    let query = Article.find(condition)
       .sort({ createdAt: -1 })
       .skip((page - 1) * pageSize)
       .limit(pageSize);
 
+    // Sort by createdAt descending (newest first)
+    if (requester && requester.isAdmin()) {
+      query = query.populate("author", "name alias pictureUrl");
+    }
+    const articles = await await query;
     res.send({
       success: true,
       articles,
@@ -93,6 +109,50 @@ exports.getArticles = async (req, res) => {
   } catch (err) {
     res.status(500).send({
       message: err.message || "Some error occurred while retrieving articles.",
+    });
+  }
+};
+
+// Retrieve all public Articles from the database.
+exports.getPublicArticles = async (req, res) => {
+  const { title, category, destination } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const condition = { status: "published" }; // Only published articles
+
+  if (title) {
+    condition.title = { $regex: new RegExp(title), $options: "i" };
+  }
+  if (category) {
+    condition.category = category;
+  }
+  if (destination) {
+    condition.destination = destination;
+  }
+
+  try {
+    const total = await Article.countDocuments(condition);
+    const totalPages = Math.ceil(total / pageSize);
+    const nextPage = page + 1 <= totalPages ? page + 1 : null;
+
+    // Sort by priority descending, then by publicationDate descending
+    const articles = await Article.find(condition)
+      .sort({ priority: -1, publicationDate: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .populate("author", "name alias pictureUrl");
+
+    res.send({
+      success: true,
+      articles,
+      total,
+      totalPages,
+      nextPage,
+    });
+  } catch (err) {
+    res.status(500).send({
+      message:
+        err.message || "Some error occurred while retrieving public articles.",
     });
   }
 };
