@@ -8,6 +8,8 @@ const BlockTemplateSchema = new Schema(
     description: { type: String },
     icon: { type: String },
     previewUrl: { type: String },
+    layout: { type: String }, // For UI preview (e.g., '3 Cols')
+    columns: { type: Schema.Types.Mixed }, // For UI preview
     schema: { type: Schema.Types.Mixed }, // JSON schema for frontend configuration validation
   },
   { timestamps: true },

@@ -13,6 +13,79 @@ exports.getTemplates = async (req, res) => {
   }
 };
 
+// Create and Save a new Block Template
+exports.createTemplate = async (req, res) => {
+  if (!req.body) {
+    return res.status(400).send({ message: "Content cannot be empty!" });
+  }
+
+  const { name, code, description, icon, layout, columns, previewUrl, schema } =
+    req.body;
+
+  const template = new BlockTemplate({
+    name,
+    code,
+    description,
+    icon,
+    layout,
+    columns,
+    previewUrl,
+    schema,
+  });
+
+  try {
+    const data = await template.save();
+    res.status(201).send({ template: data });
+  } catch (err) {
+    res.status(500).send({
+      message:
+        err.message || "Some error occurred while creating the Block Template.",
+    });
+  }
+};
+
+// Update a Block Template
+exports.updateTemplate = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const data = await BlockTemplate.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+    if (!data) {
+      res.status(404).send({
+        message: `Cannot update Block Template with id=${id}. Maybe it was not found!`,
+      });
+    } else {
+      res.send({ template: data });
+    }
+  } catch (err) {
+    res
+      .status(500)
+      .send({ message: "Error updating Block Template with id=" + id });
+  }
+};
+
+// Delete a Block Template
+exports.deleteTemplate = async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const data = await BlockTemplate.findByIdAndDelete(id);
+    if (!data) {
+      res.status(404).send({
+        message: `Cannot delete Block Template with id=${id}. Maybe it was not found!`,
+      });
+    } else {
+      res.send({ message: "Block Template was deleted successfully!" });
+    }
+  } catch (err) {
+    res
+      .status(500)
+      .send({ message: "Could not delete Block Template with id=" + id });
+  }
+};
+
 // Retrieve all Blocks from the database
 exports.getBlocks = async (req, res) => {
   try {
@@ -118,7 +191,7 @@ exports.deleteBlock = async (req, res) => {
 // Reorder Blocks
 exports.reorderBlocks = async (req, res) => {
   try {
-    const { ids } = req.body; // Array of block IDs in the new order
+    const { ids } = req.body;
 
     if (!Array.isArray(ids)) {
       return res.status(400).send({ message: "An array of IDs is required" });
