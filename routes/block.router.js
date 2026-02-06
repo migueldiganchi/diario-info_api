@@ -13,10 +13,10 @@ router.get("/blocks", blocks.getBlocks);
 router.post("/blocks", blocks.createBlock);
 
 // Update a Block with id
-router.put("/blocks/:id", blocks.updateBlock);
+router.put("/block/:id", blocks.updateBlock);
 
 // Delete a Block with id
-router.delete("/blocks/:id", blocks.deleteBlock);
+router.delete("/block/:id", blocks.deleteBlock);
 
 // Reorder Blocks
 router.post("/blocks/reorder", blocks.reorderBlocks);
