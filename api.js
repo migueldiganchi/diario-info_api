@@ -50,6 +50,7 @@ api.use("/uploads", express.static(path.join(__dirname, "uploads")));
 api.use(require("./routes/auth.router"));
 api.use(require("./routes/user.router"));
 api.use(require("./routes/file.router"));
+api.use(require("./routes/block.router"));
 api.use(require("./routes/article.router"));
 api.use(require("./routes/notification.router"));
 api.use(require("./routes/bot.router"));
