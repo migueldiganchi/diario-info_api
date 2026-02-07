@@ -21,6 +21,9 @@ router.get("/me", checkAuth, authController.me);
 // Update Authenticated User Info
 router.put("/me", checkAuth, authController.updateAuthUser);
 
+// Update Authenticated User Password
+router.put("/me/password", checkAuth, authController.updatePassword);
+
 // Password Reset Request
 router.post("/reset", [], authController.reset);
 

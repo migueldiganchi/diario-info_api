@@ -12,6 +12,7 @@ exports.createArticle = async (req, res) => {
   // Create an Article
   const article = new Article({
     title: req.body.title,
+    slug: req.body.slug,
     description: req.body.description,
     content: req.body.content,
     imageId: req.body.imageId,
@@ -162,7 +163,18 @@ exports.getArticle = async (req, res) => {
   const id = req.params.id;
 
   try {
-    const data = await Article.findById(id);
+    let data;
+
+    // Si parece un ObjectId válido, intentamos buscar por ID
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      data = await Article.findById(id);
+    }
+
+    // Si no se encontró (o no era un ID válido), buscamos por slug
+    if (!data) {
+      data = await Article.findOne({ slug: id });
+    }
+
     if (!data)
       res.status(404).send({ message: "Not found Article with id " + id });
     else res.send(data);

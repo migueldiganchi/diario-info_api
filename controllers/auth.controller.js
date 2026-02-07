@@ -430,6 +430,48 @@ exports.updateAuthUser = async (req, res) => {
   }
 };
 
+exports.updatePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.userId;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "La contraseña actual es incorrecta",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    await user.save();
+
+    const log = new Log({
+      user: user._id,
+      action: "PASSWORD_UPDATED",
+      details: `User ${user.email} updated password`,
+    });
+    await log.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Contraseña actualizada correctamente",
+    });
+  } catch (err) {
+    console.error("[updatePassword]", err);
+    res.status(500).json({
+      message: "Error al actualizar la contraseña",
+    });
+  }
+};
+
 exports.reset = (req, res) => {
   const { email } = req.body;
 

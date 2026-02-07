@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 const ArticleSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
+    slug: { type: String, trim: true, unique: true },
     description: { type: String, required: true, trim: true },
     content: { type: String, required: true }, // Replaces contentBlocks
     imageId: { type: String, required: true },
