@@ -492,7 +492,7 @@ exports.getUserArticles = async (req, res) => {
   if (!user) return;
 
   // Read creator User
-  queryConditions["author"] = user.id;
+  queryConditions["createdBy"] = user.id;
 
   // Term Filter
   if (term != "") {
@@ -510,7 +510,7 @@ exports.getUserArticles = async (req, res) => {
   try {
     const articles = await Article.find(queryConditions)
       .populate({
-        path: "author",
+        path: "createdBy",
         model: "User",
         select:
           "_id name phone locationAddress locationCountry locationCity pictureUrl",

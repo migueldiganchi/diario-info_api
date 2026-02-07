@@ -17,6 +17,7 @@ const ArticleSchema = new Schema(
     },
     isHighlighted: { type: Boolean, default: false },
     author: { type: String },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
     date: { type: String },
     location: { type: String },
     publicationDate: { type: Date },

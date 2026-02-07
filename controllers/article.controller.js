@@ -31,6 +31,7 @@ exports.createArticle = async (req, res) => {
     validityHours: req.body.validityHours,
     tags: req.body.tags,
     articleType: req.body.articleType,
+    createdBy: req.userId,
   });
 
   // Save Article in the database
@@ -80,10 +81,13 @@ exports.getArticles = async (req, res) => {
 
     // If user is not an admin, they can only see their own articles.
     if (!requester || !requester.isAdmin()) {
-      condition.author = req.userId;
+      condition.createdBy = req.userId;
     } else if (author) {
       // Admin can filter by author
-      condition.author = author;
+      const users = await User.find({
+        name: { $regex: new RegExp(author), $options: "i" },
+      }).select("_id");
+      condition.createdBy = { $in: users.map((u) => u._id) };
     }
 
     const total = await Article.countDocuments(condition);
@@ -97,7 +101,7 @@ exports.getArticles = async (req, res) => {
 
     // Sort by createdAt descending (newest first)
     if (requester && requester.isAdmin()) {
-      query = query.populate("author", "name alias pictureUrl");
+      query = query.populate("createdBy", "name alias pictureUrl");
     }
     const articles = await await query;
     res.send({
@@ -141,7 +145,8 @@ exports.getPublicArticles = async (req, res) => {
       .sort({ priority: -1, publicationDate: -1 })
       .skip((page - 1) * pageSize)
       .limit(pageSize)
-      .populate("author", "name alias pictureUrl");
+      .populate("author", "name alias pictureUrl")
+      .populate("createdBy", "name alias pictureUrl bio");
 
     res.send({
       success: true,
@@ -167,12 +172,15 @@ exports.getArticle = async (req, res) => {
 
     // Si parece un ObjectId válido, intentamos buscar por ID
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      data = await Article.findById(id);
+      data = await Article.findById(id).populate("createdBy", "-password");
     }
 
     // Si no se encontró (o no era un ID válido), buscamos por slug
     if (!data) {
-      data = await Article.findOne({ slug: id });
+      data = await Article.findOne({ slug: id }).populate(
+        "createdBy",
+        "-password",
+      );
     }
 
     if (!data)

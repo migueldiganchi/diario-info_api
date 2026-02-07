@@ -75,7 +75,7 @@ exports.io = async (req, res) => {
 
     // Fetch related entities from the database without limiting the results
     const relatedArticles = await Article.find().select(
-      "title description _id category author"
+      "title description _id category createdBy"
     );
     const relatedCategories = await Category.find().select(
       "name description _id"
