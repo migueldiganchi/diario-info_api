@@ -91,8 +91,6 @@ exports.getUsers = async (req, res) => {
   // Status Filter
   if (status !== undefined) {
     queryConditions.status = status;
-  } else {
-    queryConditions.status = 1;
   }
 
   // Role Filter
@@ -108,7 +106,7 @@ exports.getUsers = async (req, res) => {
 
   try {
     const users = await User.find(queryConditions)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
       .limit(pageSize)
       .skip(pageSize * (page - 1))
       .select(
