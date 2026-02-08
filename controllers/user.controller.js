@@ -82,12 +82,29 @@ exports.getUser = async (req, res) => {
 };
 
 exports.getUsers = async (req, res) => {
-  const page = Math.max(0, req.query.page);
-  const pageSize = Math.max(0, req.query.pageSize);
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const { name, role, status } = req.query;
+
   const queryConditions = {};
 
-  // USER STATUS FILTER
-  queryConditions["status"] = "1";
+  // Status Filter
+  if (status !== undefined) {
+    queryConditions.status = status;
+  } else {
+    queryConditions.status = 1;
+  }
+
+  // Role Filter
+  if (role) {
+    queryConditions.role = role;
+  }
+
+  // Search Term
+  if (name) {
+    const regex = new RegExp(name, "i");
+    queryConditions.$or = [{ name: regex }, { email: regex }, { alias: regex }];
+  }
 
   try {
     const users = await User.find(queryConditions)
@@ -95,7 +112,7 @@ exports.getUsers = async (req, res) => {
       .limit(pageSize)
       .skip(pageSize * (page - 1))
       .select(
-        "_id name lastName alias pictureUrl bio locationCity locationCountry",
+        "_id name lastName alias email role status pictureUrl bio locationCity locationCountry",
       )
       .exec();
     const total = await User.countDocuments(queryConditions);
