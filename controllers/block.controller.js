@@ -47,11 +47,32 @@ exports.createTemplate = async (req, res) => {
 // Update a Block Template
 exports.updateTemplate = async (req, res) => {
   const id = req.params.id;
+  const { name, code, description, icon, layout, columns, previewUrl, schema } =
+    req.body;
+
+  const updateData = {
+    name,
+    code,
+    description,
+    icon,
+    layout,
+    columns,
+    previewUrl,
+    schema,
+  };
+
+  // Remove undefined keys to allow partial updates
+  Object.keys(updateData).forEach(
+    (key) => updateData[key] === undefined && delete updateData[key],
+  );
 
   try {
-    const data = await BlockTemplate.findByIdAndUpdate(id, req.body, {
+    const data = await BlockTemplate.findByIdAndUpdate(id, updateData, {
       new: true,
     });
+
+    console.log("[[[ Updated Template: ]]]", JSON.stringify(data, null, 2));
+
     if (!data) {
       res.status(404).send({
         message: `Cannot update Block Template with id=${id}. Maybe it was not found!`,
@@ -112,7 +133,7 @@ exports.createBlock = async (req, res) => {
     return res.status(400).send({ message: "Content cannot be empty!" });
   }
 
-  const { name, template, order, isVisible, config } = req.body;
+  const { name, template, order, isVisible, config, content } = req.body;
 
   // Create a Block
   const block = new Block({
@@ -121,6 +142,7 @@ exports.createBlock = async (req, res) => {
     order: order ?? 0,
     isVisible: isVisible ?? true,
     config,
+    content,
   });
 
   // Save Block in the database
@@ -146,11 +168,29 @@ exports.updateBlock = async (req, res) => {
   }
 
   const id = req.params.id;
+  const { name, template, order, isVisible, config, content } = req.body;
+
+  const updateData = {
+    name,
+    template,
+    order,
+    isVisible,
+    config,
+    content,
+  };
+
+  // Remove undefined keys to allow partial updates
+  Object.keys(updateData).forEach(
+    (key) => updateData[key] === undefined && delete updateData[key],
+  );
 
   try {
-    const data = await Block.findByIdAndUpdate(id, req.body, {
+    const data = await Block.findByIdAndUpdate(id, updateData, {
       new: true,
     }).populate("template");
+
+    console.log("[[[ Request Body: ]]]", JSON.stringify(req.body, null, 2));
+    console.log("[[[ Updated Block: ]]]", JSON.stringify(data, null, 2));
 
     if (!data) {
       res.status(404).send({

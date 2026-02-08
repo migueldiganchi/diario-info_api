@@ -8,7 +8,12 @@ const { imgFileUploader } = require("../middleware/check-file");
 router.get("/files", checkAuth, fileController.getFiles);
 
 // Upload a new File
-router.post("/files/upload", checkAuth, imgFileUploader.single("file"), fileController.uploadFile);
+router.post(
+  "/files/upload",
+  checkAuth,
+  imgFileUploader.single("file"),
+  fileController.uploadFile,
+);
 
 // Retrieve a single File with id
 router.get("/file/:id", [], fileController.getFileById);

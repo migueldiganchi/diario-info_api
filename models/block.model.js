@@ -4,13 +4,18 @@ const { Schema } = mongoose;
 const BlockSchema = new Schema(
   {
     name: { type: String, required: true },
-    template: { type: Schema.Types.ObjectId, ref: "BlockTemplate", required: true },
+    template: {
+      type: Schema.Types.ObjectId,
+      ref: "BlockTemplate",
+      required: true,
+    },
     order: { type: Number, default: 0 },
     isVisible: { type: Boolean, default: true },
     // Dynamic configuration based on the template (title, limits, category IDs, etc.)
     config: { type: Schema.Types.Mixed, default: {} },
+    content: { type: [Schema.Types.Mixed], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Transform _id to id for frontend compatibility
