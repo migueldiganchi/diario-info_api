@@ -54,7 +54,7 @@ const handleUserActivation = async (createdUser) => {
     // Set Welcome Notification to new User
     const welcomeNotification = new Notification({
       user: createdUser._id,
-      message: `¡Bienvenid@ {DIARIO-INFO}! ${createdUser.name}!`,
+      message: `¡Bienvenid@ {DIARIO-INFO} ${createdUser.name}!`,
       title: "¡Estas conectado al servicio de Notificaciones de DIARIO-INFO!",
       details:
         "En DIARIO-INFO podrás ayudar a cuidar el planeta usando diferentes perspectivas. Contamos con tu buena voluntad",
@@ -77,7 +77,7 @@ const handleUserActivation = async (createdUser) => {
       subject: "¡Bienvenido a {DIARIO-INFO}!",
       html: `
         <h3>
-          Bienvenid@ al Equipo de {DIARIO-INFO}!
+          ¡Bienvenid@ al Equipo de {DIARIO-INFO}!
         </h3>
         <p>
           Por favor dale click <a href="${accountActivationURL}" target="_blank">
