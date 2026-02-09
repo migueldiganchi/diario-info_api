@@ -64,8 +64,16 @@ exports.getArticles = async (req, res) => {
   const condition = {};
 
   if (title) {
-    condition.title = { $regex: new RegExp(title), $options: "i" };
+    // We escape special characters to avoid errors in RegExp and ensure a literal search
+    const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchRegex = new RegExp(escapedTitle, "i");
+    condition.$or = [
+      { title: { $regex: searchRegex } },
+      { description: { $regex: searchRegex } },
+      { content: { $regex: searchRegex } },
+    ];
   }
+
   if (status) {
     condition.status = status;
   }
@@ -126,7 +134,14 @@ exports.getPublicArticles = async (req, res) => {
   const condition = { status: "published" }; // Only published articles
 
   if (title) {
-    condition.title = { $regex: new RegExp(title), $options: "i" };
+    // We escape special characters to avoid errors in RegExp and ensure a literal search
+    const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchRegex = new RegExp(escapedTitle, "i");
+    condition.$or = [
+      { title: { $regex: searchRegex } },
+      { description: { $regex: searchRegex } },
+      { content: { $regex: searchRegex } },
+    ];
   }
   if (category) {
     condition.category = category;
