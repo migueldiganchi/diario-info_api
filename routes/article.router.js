@@ -15,6 +15,9 @@ router.get("/articles/public", [], articles.getPublicArticles);
 // Retrieve a single Article with id
 router.get("/article/:id", [], articles.getArticle);
 
+// Retrieve related Articles
+router.get("/article/:id/related", [], articles.getRelatedArticles);
+
 // Update an Article with id
 router.put("/article/:id", checkAuth, articles.updateArticle);
 

@@ -207,6 +207,49 @@ exports.getArticle = async (req, res) => {
   }
 };
 
+// Retrieve related Articles
+exports.getRelatedArticles = async (req, res) => {
+  const id = req.params.id;
+  const limit = parseInt(req.query.limit) || 3;
+
+  try {
+    let article;
+
+    // If it looks like a valid ObjectId, try to find by ID first
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      article = await Article.findById(id);
+    }
+
+    // If not found (or not a valid ID), try to find by slug
+    if (!article) {
+      article = await Article.findOne({ slug: id });
+    }
+
+    if (!article) {
+      return res.status(404).send({ message: "Article not found" });
+    }
+
+    const articles = await Article.find({
+      category: article.category,
+      status: "published",
+      _id: { $ne: article._id },
+    })
+      .sort({ publicationDate: -1 })
+      .limit(limit)
+      .populate("author", "name alias pictureUrl")
+      .populate("createdBy", "name alias pictureUrl bio")
+      .populate({
+        path: "imageId",
+        model: "File",
+        select: "fileUrl thumbnailUrl originalName",
+      });
+
+    res.send({ success: true, articles });
+  } catch (err) {
+    res.status(500).send({ message: "Error retrieving related articles" });
+  }
+};
+
 // Update an Article by the id in the request
 exports.updateArticle = async (req, res) => {
   if (!req.body) {
