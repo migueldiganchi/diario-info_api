@@ -146,7 +146,12 @@ exports.getPublicArticles = async (req, res) => {
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .populate("author", "name alias pictureUrl")
-      .populate("createdBy", "name alias pictureUrl bio");
+      .populate("createdBy", "name alias pictureUrl bio")
+      .populate({
+        path: "imageId",
+        model: "File",
+        select: "fileUrl thumbnailUrl originalName",
+      });
 
     res.send({
       success: true,
@@ -156,6 +161,8 @@ exports.getPublicArticles = async (req, res) => {
       nextPage,
     });
   } catch (err) {
+    console.error("Error retrieving public articles:", err);
+
     res.status(500).send({
       message:
         err.message || "Some error occurred while retrieving public articles.",
@@ -170,17 +177,26 @@ exports.getArticle = async (req, res) => {
   try {
     let data;
 
-    // Si parece un ObjectId válido, intentamos buscar por ID
+    // If it looks like a valid ObjectId, try to find by ID first
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      data = await Article.findById(id).populate("createdBy", "-password");
+      data = await Article.findById(id)
+        .populate("createdBy", "-password")
+        .populate({
+          path: "imageId",
+          model: "File",
+          select: "fileUrl thumbnailUrl originalName",
+        });
     }
 
-    // Si no se encontró (o no era un ID válido), buscamos por slug
+    // If not found (or not a valid ID), try to find by slug
     if (!data) {
-      data = await Article.findOne({ slug: id }).populate(
-        "createdBy",
-        "-password",
-      );
+      data = await Article.findOne({ slug: id })
+        .populate("createdBy", "-password")
+        .populate({
+          path: "imageId",
+          model: "File",
+          select: "fileUrl thumbnailUrl originalName",
+        });
     }
 
     if (!data)
