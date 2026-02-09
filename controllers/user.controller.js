@@ -312,6 +312,14 @@ exports.updateUserStatus = async (req, res) => {
     userToUpdate.status = newStatus;
     userToUpdate.disabledAt = newStatus === 1 ? null : new Date();
 
+    if (newStatus === 1) {
+      userToUpdate.signupTokenActivatedAt = new Date();
+      userToUpdate.signupTokenExpiresAt = null;
+      userToUpdate.signupToken = null;
+    } else {
+      userToUpdate.signupTokenActivatedAt = null;
+    }
+
     const updatedUser = await userToUpdate.save();
 
     // Log action

@@ -154,7 +154,7 @@ exports.signup = async (req, res, next) => {
       role: "Reader",
       createdAt: Date.now(),
       signupToken: null,
-      signupTokenExpiresAt: null
+      signupTokenExpiresAt: null,
     });
 
     // Save user into DB
@@ -204,9 +204,6 @@ exports.activateAccount = async (req, res) => {
       signupToken: signupToken,
       signupTokenExpiresAt: { $gt: new Date() },
     });
-
-    console.log("[activateAccount] Activating user with token:", signupToken);
-    console.log("[activateAccount] User:", user);
 
     // If the user doesn't exist => token is not valid
     if (!user) {
@@ -332,7 +329,8 @@ exports.signin = async (req, res) => {
 
     if (err.name === "MongooseServerSelectionError") {
       return res.status(503).json({
-        message: "Database connection failed. Please check your network or IP whitelist.",
+        message:
+          "Database connection failed. Please check your network or IP whitelist.",
       });
     }
 
@@ -384,7 +382,7 @@ exports.updateAuthUser = async (req, res) => {
   const {
     pictureUrl,
     name,
-    alias,
+    // alias,
     bio,
     locationCountry,
     locationProvince,
@@ -400,7 +398,7 @@ exports.updateAuthUser = async (req, res) => {
     // Upate User Data
     userToUpdate.pictureUrl = pictureUrl;
     userToUpdate.name = name;
-    userToUpdate.alias = alias;
+    // userToUpdate.alias = alias;
     userToUpdate.bio = bio;
     userToUpdate.locationCountry = locationCountry;
     userToUpdate.locationProvince = locationProvince;
