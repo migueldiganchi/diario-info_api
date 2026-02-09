@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const blocks = require("../controllers/block.controller.js");
-const checkAuth = require('../middleware/check-auth');
+const checkAuth = require('../middlewares/check-auth.js');
 
 // Retrieve all Block Templates
 router.get("/block-templates", blocks.getTemplates);

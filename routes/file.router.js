@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const checkAuth = require("../middleware/check-auth");
+const checkAuth = require("../middlewares/check-auth");
 const fileController = require("../controllers/file.controller");
-const { imgFileUploader } = require("../middleware/check-file");
+const { imgFileUploader } = require("../middlewares/check-file");
 
 // Retrieve all Files
 router.get("/files", checkAuth, fileController.getFiles);

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const checkAuth = require("../middleware/check-auth");
+const checkAuth = require("../middlewares/check-auth");
 const notificationController = require("../controllers/notification.controller");
 
 // Retrieve all Notifications for the authenticated user
