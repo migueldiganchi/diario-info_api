@@ -76,7 +76,7 @@ api.listen(PORT, () => {
   // =======================
   // Mongo connection (SAFE)
   // =======================
-  const getConnectionString = require("./util/mongo_db").getConnectionString;
+  const getConnectionString = require("./utils/mongo_db").getConnectionString;
 
   let conn;
   try {

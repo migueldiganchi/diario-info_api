@@ -29,7 +29,7 @@ npm run start
 - **models/**: It has it's data structure of the API service.
 - **controllers/**: It has the logic of the API service.
 - **routes/**: It has the request handlers for each endpoint of the API service.
-- **util/database.js** : MongoDB handler.
+- **utils/database.js** : MongoDB handler.
 
 ### Endpoints
 
