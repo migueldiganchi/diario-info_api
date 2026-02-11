@@ -1,5 +1,7 @@
 const Block = require("../models/block.model.js");
 const BlockTemplate = require("../models/blockTemplate.model.js");
+const Log = require("../models/log.model.js");
+const mongoose = require("mongoose");
 
 // Retrieve all Block Templates
 exports.getTemplates = async (req, res) => {
@@ -237,15 +239,42 @@ exports.reorderBlocks = async (req, res) => {
       return res.status(400).send({ message: "An array of IDs is required" });
     }
 
+    if (req.userId) {
+      const log = new Log({
+        user: req.userId,
+        action: "BLOCK_REORDER_IDS",
+        details: `IDs: ${JSON.stringify(ids)}`,
+      });
+      await log.save();
+    }
+
     const bulkOps = ids.map((id, index) => ({
       updateOne: {
-        filter: { _id: id },
+        filter: { _id: new mongoose.Types.ObjectId(id) },
         update: { order: index },
       },
     }));
 
+    if (req.userId) {
+      const log = new Log({
+        user: req.userId,
+        action: "BLOCK_REORDER_OPS",
+        details: `Ops: ${JSON.stringify(bulkOps)}`,
+      });
+      await log.save();
+    }
+
     if (bulkOps.length > 0) {
-      await Block.bulkWrite(bulkOps);
+      const result = await Block.bulkWrite(bulkOps);
+
+      if (req.userId) {
+        const log = new Log({
+          user: req.userId,
+          action: "BLOCK_REORDER_RESULT",
+          details: JSON.stringify(result),
+        });
+        await log.save();
+      }
     }
 
     res.send({ message: "Order updated successfully" });
