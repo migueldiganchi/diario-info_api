@@ -1,4 +1,4 @@
-// ❌ NO dotenv en cPanel
+// ❌ NO dotenv at cPanel
 require("dotenv").config();
 
 const express = require("express");
