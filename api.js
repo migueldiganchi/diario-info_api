@@ -10,13 +10,6 @@ const api = express();
 // Middlewares
 // =======================
 api.use((req, res, next) => {
-  // Log request
-  console.log(
-    `[REQ] ${req.method} ${req.originalUrl} | Origin: ${
-      req.headers.origin || "N/A"
-    } | UA: ${req.headers["user-agent"] || "N/A"}`,
-  );
-
   // Headers CORS allowed
   res.setHeader("Access-Control-Allow-Origin", "*");
 
@@ -31,6 +24,15 @@ api.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Accept, Content-Type, Authorization",
   );
+
+  // Headers no-cache
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate",
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
 
   // Continue to routes
   next();
