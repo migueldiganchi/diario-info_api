@@ -9,7 +9,7 @@ const BlockSchema = new Schema(
       ref: "BlockTemplate",
       required: true,
     },
-    order: { type: Number, default: 0 },
+    order: { type: Number, default: 0, index: true },
     isVisible: { type: Boolean, default: true },
     // Dynamic configuration based on the template (title, limits, category IDs, etc.)
     config: { type: Schema.Types.Mixed, default: {} },

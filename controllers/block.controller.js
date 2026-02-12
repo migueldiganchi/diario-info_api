@@ -239,43 +239,31 @@ exports.reorderBlocks = async (req, res) => {
       return res.status(400).send({ message: "An array of IDs is required" });
     }
 
-    if (req.userId) {
-      const log = new Log({
-        user: req.userId,
-        action: "BLOCK_REORDER_IDS",
-        details: `IDs: ${JSON.stringify(ids)}`,
-      });
-      await log.save();
-    }
+    // if (req.userId) {
+    //   const log = new Log({
+    //     user: req.userId,
+    //     action: "BLOCK_REORDER_START",
+    //     details: `IDs: ${JSON.stringify(ids)}`,
+    //   });
+    //   await log.save();
+    // }
 
-    const bulkOps = ids.map((id, index) => ({
-      updateOne: {
-        filter: { _id: new mongoose.Types.ObjectId(id) },
-        update: { order: index },
-      },
-    }));
+    // Usamos Promise.all para asegurar que cada actualización se procese y devuelva el ID
+    const updatePromises = ids.map((id, index) => {
+      return Block.findByIdAndUpdate(id, { order: index }, { new: true }).select("_id");
+    });
 
-    if (req.userId) {
-      const log = new Log({
-        user: req.userId,
-        action: "BLOCK_REORDER_OPS",
-        details: `Ops: ${JSON.stringify(bulkOps)}`,
-      });
-      await log.save();
-    }
+    const results = await Promise.all(updatePromises);
+    const updatedIds = results.filter((item) => item !== null).map((item) => item._id);
 
-    if (bulkOps.length > 0) {
-      const result = await Block.bulkWrite(bulkOps);
-
-      if (req.userId) {
-        const log = new Log({
-          user: req.userId,
-          action: "BLOCK_REORDER_RESULT",
-          details: JSON.stringify(result),
-        });
-        await log.save();
-      }
-    }
+    // if (req.userId) {
+    //   const log = new Log({
+    //     user: req.userId,
+    //     action: "BLOCK_REORDER_RESULT",
+    //     details: `Updated Count: ${updatedIds.length}. IDs: ${JSON.stringify(updatedIds)}`,
+    //   });
+    //   await log.save();
+    // }
 
     res.send({ message: "Order updated successfully" });
   } catch (err) {
