@@ -239,31 +239,17 @@ exports.reorderBlocks = async (req, res) => {
       return res.status(400).send({ message: "An array of IDs is required" });
     }
 
-    // if (req.userId) {
-    //   const log = new Log({
-    //     user: req.userId,
-    //     action: "BLOCK_REORDER_START",
-    //     details: `IDs: ${JSON.stringify(ids)}`,
-    //   });
-    //   await log.save();
-    // }
+    const now = new Date();
+    const bulkOps = ids.map((id, index) => ({
+      updateOne: {
+        filter: { _id: new mongoose.Types.ObjectId(id) },
+        update: { $set: { order: index, updatedAt: now } },
+      },
+    }));
 
-    // Usamos Promise.all para asegurar que cada actualización se procese y devuelva el ID
-    const updatePromises = ids.map((id, index) => {
-      return Block.findByIdAndUpdate(id, { order: index }, { new: true }).select("_id");
-    });
-
-    const results = await Promise.all(updatePromises);
-    const updatedIds = results.filter((item) => item !== null).map((item) => item._id);
-
-    // if (req.userId) {
-    //   const log = new Log({
-    //     user: req.userId,
-    //     action: "BLOCK_REORDER_RESULT",
-    //     details: `Updated Count: ${updatedIds.length}. IDs: ${JSON.stringify(updatedIds)}`,
-    //   });
-    //   await log.save();
-    // }
+    if (bulkOps.length > 0) {
+      await Block.bulkWrite(bulkOps, { ordered: false });
+    }
 
     res.send({ message: "Order updated successfully" });
   } catch (err) {
