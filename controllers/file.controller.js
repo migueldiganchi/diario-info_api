@@ -5,11 +5,12 @@ let sharp;
 try {
   sharp = require("sharp");
 } catch (e) {
-  console.warn("⚠️ Módulo 'sharp' no encontrado. El procesamiento de imágenes se omitirá.");
+  console.warn(
+    "⚠️ Sharp library not found. Thumbnail generation and image dimension extraction will be disabled. To enable these features, install sharp with: npm install sharp",
+  );
 }
 
-
-// Generar thumbnail
+// Generate thumbnail for image files using Sharp. If Sharp is not available, skip this step.
 const generateThumbnail = async (filePath, thumbnailPath) => {
   if (!sharp) return false;
   try {
@@ -26,7 +27,7 @@ const generateThumbnail = async (filePath, thumbnailPath) => {
   }
 };
 
-// Obtener dimensiones de imagen
+// Get image dimensions using Sharp. If Sharp is not available or an error occurs, return null for both width and height.
 const getImageDimensions = async (filePath) => {
   if (!sharp) return { width: null, height: null };
   try {
@@ -40,14 +41,14 @@ const getImageDimensions = async (filePath) => {
   }
 };
 
-// GET /api/files - Listar archivos con búsqueda y paginación
+// GET /api/files - Get paginated list of files with optional search
 exports.getFiles = async (req, res) => {
   try {
     const { page = 1, limit = 24, search } = req.query;
 
     const query = {};
 
-    // Búsqueda de texto
+    // Text search on originalName and description fields
     if (search && search.trim()) {
       query.$text = { $search: search };
     }
@@ -81,7 +82,7 @@ exports.getFiles = async (req, res) => {
   }
 };
 
-// GET /api/file/:id - Obtener un archivo específico
+// GET /api/file/:id - Get file details by ID
 exports.getFileById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -108,66 +109,63 @@ exports.getFileById = async (req, res) => {
   }
 };
 
-// POST /api/files/upload - Subir archivo
+// POST /api/files/upload - Upload a new file
 exports.uploadFile = async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          status: false,
-          message: "No se proporcionó archivo",
-        });
-      }
-
-      const { description } = req.body;
-      const userId = req.userId;
-
-      const filePath = req.file.path;
-      const fileUrl = `/uploads/${req.file.filename}`;
-
-      // Generar thumbnail
-      const thumbnailFilename = `thumb_${req.file.filename}`;
-      const thumbnailPath = path.join(
-        path.dirname(filePath),
-        thumbnailFilename,
-      );
-
-      const thumbCreated = await generateThumbnail(filePath, thumbnailPath);
-      const thumbnailUrl = thumbCreated ? `/uploads/${thumbnailFilename}` : null;
-
-      // Obtener dimensiones
-      const dimensions = await getImageDimensions(filePath);
-
-      // Crear registro en DB
-      const file = new File({
-        fileName: req.file.filename,
-        originalName: req.file.originalname,
-        fileUrl,
-        thumbnailUrl,
-        description: description || "",
-        mimeType: req.file.mimetype,
-        size: req.file.size,
-        width: dimensions.width,
-        height: dimensions.height,
-        uploadedBy: userId,
-      });
-
-      await file.save();
-
-      return res.status(201).json({
-        status: true,
-        message: "Archivo subido correctamente",
-        file,
-      });
-    } catch (err) {
-      console.error("[err]", err);
-      return res.status(500).json({
+  try {
+    if (!req.file) {
+      return res.status(400).json({
         status: false,
-        message: "Error al subir archivo",
+        message: "No se proporcionó archivo",
       });
     }
-  };
 
-// PUT /api/file/:id - Actualizar descripción del archivo
+    const { description } = req.body;
+    const userId = req.userId;
+
+    const filePath = req.file.path;
+    const fileUrl = `/uploads/${req.file.filename}`;
+
+    // Generar thumbnail
+    const thumbnailFilename = `thumb_${req.file.filename}`;
+    const thumbnailPath = path.join(path.dirname(filePath), thumbnailFilename);
+
+    const thumbCreated = await generateThumbnail(filePath, thumbnailPath);
+    const thumbnailUrl = thumbCreated ? `/uploads/${thumbnailFilename}` : null;
+
+    // Obtener dimensiones
+    const dimensions = await getImageDimensions(filePath);
+
+    // Crear registro en DB
+    const file = new File({
+      fileName: req.file.filename,
+      originalName: req.file.originalname,
+      fileUrl,
+      thumbnailUrl,
+      description: description || "",
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      width: dimensions.width,
+      height: dimensions.height,
+      uploadedBy: userId,
+    });
+
+    await file.save();
+
+    return res.status(201).json({
+      status: true,
+      message: "Archivo subido correctamente",
+      file,
+    });
+  } catch (err) {
+    console.error("[err]", err);
+    return res.status(500).json({
+      status: false,
+      message: "Error al subir archivo",
+    });
+  }
+};
+
+// PUT /api/file/:id - Update file metadata (e.g., description)
 exports.updateFile = async (req, res) => {
   try {
     const { id } = req.params;
@@ -200,7 +198,7 @@ exports.updateFile = async (req, res) => {
   }
 };
 
-// DELETE /api/file/:id - Eliminar archivo
+// DELETE /api/file/:id - Remove a file by ID (delete physical file and DB record)
 exports.deleteFile = async (req, res) => {
   try {
     const { id } = req.params;
@@ -214,7 +212,7 @@ exports.deleteFile = async (req, res) => {
       });
     }
 
-    // Eliminar archivos físicos
+    // Remove physical files
     const filePath = path.join(__dirname, "../../", file.fileUrl);
     const thumbnailPath = file.thumbnailUrl
       ? path.join(__dirname, "../../", file.thumbnailUrl)
@@ -229,7 +227,7 @@ exports.deleteFile = async (req, res) => {
       console.error("[Error deleting physical files]", unlinkErr);
     }
 
-    // Eliminar registro de la base de datos
+    // Remove DB record
     await File.findByIdAndDelete(id);
 
     return res.status(200).json({
