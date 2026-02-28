@@ -3,7 +3,7 @@ const router = express.Router();
 const importerController = require("../controllers/importer.controller");
 const checkAuth = require("../middlewares/check-auth");
 
-// Importar una noticia específica por su ID de MySQL
+// Import a specific news item by its MySQL ID
 // POST /api/import/article/12345
 router.post(
   "/import/article/:id",

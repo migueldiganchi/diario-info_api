@@ -1,9 +1,9 @@
 const { executeQuery } = require("../utils/mysql_db");
 
 /**
- * Obtiene una nota de la tabla legacy NotasNuevas por su ID.
- * @param {number|string} id - El ID de la nota (NotaId).
- * @returns {Promise<Object|null>} - El objeto de la nota o null si no existe.
+ * Retrieves a note from the legacy NotasNuevas table by its ID.
+ * @param {number|string} id - The ID of the note (NotaId).
+ * @returns {Promise<Object|null>} - The note object or null if it does not exist.
  */
 const getExternalArticleById = async (id) => {
   const query = `

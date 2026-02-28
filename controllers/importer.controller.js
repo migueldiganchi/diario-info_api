@@ -2,18 +2,18 @@ const ImporterModel = require("../models/importer.model");
 const Article = require("../models/article.model");
 const Log = require("../models/log.model");
 
-// Helper para generar slugs limpios
+// Helper to generate clean slugs
 const generateSlug = (text) => {
   if (!text) return "";
   return text
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, "-")     // Reemplazar espacios con -
-    .replace(/[^\w\-]+/g, "") // Eliminar caracteres no alfanuméricos
-    .replace(/\-\-+/g, "-")   // Reemplazar múltiples - con uno solo
-    .replace(/^-+/, "")       // Trim - del inicio
-    .replace(/-+$/, "");      // Trim - del final
+    .replace(/\s+/g, "-")     // Replace spaces with -
+    .replace(/[^\w\-]+/g, "") // Remove non-alphanumeric characters
+    .replace(/\-\-+/g, "-")   // Replace multiple - with single -
+    .replace(/^-+/, "")       // Trim - from start
+    .replace(/-+$/, "");      // Trim - from end
 };
 
 exports.importArticleById = async (req, res) => {
@@ -24,7 +24,7 @@ exports.importArticleById = async (req, res) => {
   }
 
   try {
-    // 1. Obtener datos de la fuente externa (MySQL)
+    // 1. Get data from external source (MySQL)
     const externalArticle = await ImporterModel.getExternalArticleById(id);
 
     if (!externalArticle) {
@@ -33,35 +33,35 @@ exports.importArticleById = async (req, res) => {
       });
     }
 
-    // 2. Preparar y transformar datos para MongoDB
+    // 2. Prepare and transform data for MongoDB
     let slug = generateSlug(externalArticle.Titulo);
     
-    // Verificar si ya existe un artículo con ese slug para evitar colisiones
-    // Si existe, le agregamos el ID original al final para hacerlo único
+    // Check if an article with that slug already exists to avoid collisions
+    // If it exists, append the original ID to the end to make it unique
     const existingArticle = await Article.findOne({ slug: slug });
     if (existingArticle) {
       slug = `${slug}-${id}`;
     }
 
-    // Mapeo de campos: Legacy MySQL -> Mongoose Schema
+    // Field mapping: Legacy MySQL -> Mongoose Schema
     const newArticleData = {
       title: externalArticle.Titulo,
       slug: slug,
-      description: externalArticle.Resumen || externalArticle.Titulo, // Fallback si no hay resumen
+      description: externalArticle.Resumen || externalArticle.Titulo, // Fallback if summary is empty
       content: externalArticle.Nota || "",
       
-      // Manejo de imagen: Si no hay PieMultimedia, usamos un placeholder
+      // Image handling: If no PieMultimedia, use a placeholder
       imageId: externalArticle.PieMultimedia && externalArticle.PieMultimedia.length > 5 
         ? externalArticle.PieMultimedia 
         : "default-placeholder.jpg",
         
-      // Mapeo simple de categoría usando el ID de sección
+      // Simple category mapping using section ID
       category: `Seccion-${externalArticle.SeccionId}`, 
       
-      // Lógica de estado
+      // Status logic
       status: externalArticle.ActivaImpreso === 1 ? "published" : "draft",
       
-      // Lógica de destacado
+      // Highlighted logic
       isHighlighted: (externalArticle.Destacada === 1 || externalArticle.Portada === 1),
       
       author: externalArticle.Usuario || "Importado",
@@ -69,22 +69,22 @@ exports.importArticleById = async (req, res) => {
       destination: "web",
       articleType: "news",
       
-      // Usamos Pretitulo y PostTitulo como puntos clave
+      // Use Pretitulo and PostTitulo as key points
       keyPoints: [externalArticle.Pretitulo, externalArticle.PostTitulo].filter(Boolean),
       
-      // Fechas
+      // Dates
       date: new Date().toISOString(),
       publicationDate: new Date(),
       
-      // Auditoría
+      // Audit
       createdBy: req.userId, 
     };
 
-    // 3. Guardar en MongoDB
+    // 3. Save to MongoDB
     const article = new Article(newArticleData);
     const savedArticle = await article.save();
 
-    // 4. Registrar Log de la operación
+    // 4. Register Log of the operation
     if (req.userId) {
       await Log.create({
         user: req.userId,
