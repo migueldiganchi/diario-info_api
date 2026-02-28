@@ -55,6 +55,7 @@ api.use(require("./routes/block.router"));
 api.use(require("./routes/article.router"));
 api.use(require("./routes/category.router"));
 api.use(require("./routes/notification.router"));
+api.use(require("./routes/importer.router"));
 api.use(require("./routes/bot.router"));
 
 // =======================
