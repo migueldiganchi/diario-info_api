@@ -23,7 +23,7 @@ const userSchema = new Schema({
   paymentDetails: { type: String },
   role: {
     type: String,
-    enum: ["Reader", "Editor", "Admin"],
+    enum: ["Reader", "Editor", "Director", "Admin"],
     default: "Reader",
     required: true,
   },
@@ -59,7 +59,7 @@ userSchema.methods.isAdmin = function () {
 
 // MMethod to check if user can edit
 userSchema.methods.canEdit = function () {
-  return this.role === "Admin" || this.role === "Editor";
+  return ["Admin", "Editor", "Director"].includes(this.role);
 };
 
 userSchema.index({
