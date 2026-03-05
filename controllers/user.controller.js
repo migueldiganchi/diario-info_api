@@ -7,14 +7,14 @@ const crypto = require("crypto");
 
 const getUserByUnique = async (userId, res) => {
   let user = await User.findOne({ alias: userId }).select(
-    "_id pictureUrl name lastName alias bio email phone locationAddress locationCountry locationCity",
+    "_id pictureUrl name lastName alias role bio email phone locationAddress locationCountry locationCity",
   );
 
   // If Alias doesn't Work, find with Id
   if (!user) {
     // Get User by Id
     user = await User.findById(userId).select(
-      "_id pictureUrl name lastName alias bio email phone locationAddress locationCountry locationCity",
+      "_id pictureUrl name lastName alias role bio email phone locationAddress locationCountry locationCity",
     );
   }
 
