@@ -1,7 +1,7 @@
 const Log = require("../models/log.model");
 
 /**
- * @description Obtiene los logs del sistema con filtros y paginación.
+ * @description Get system logs with filtering and pagination.
  * @param {import("express").Request} req
  * @param {import("express").Response} res
  */
@@ -16,13 +16,13 @@ const getLogs = async (req, res) => {
     }
 
     if (action) {
-      // Búsqueda flexible e insensible a mayúsculas/minúsculas
+      // Flexible and case-insensitive search
       query.action = { $regex: action, $options: "i" };
     }
 
     const logs = await Log.find(query)
-      .populate("user", "name email alias") // Obtenemos datos básicos del usuario
-      .sort({ createdAt: -1 }) // Los más recientes primero
+      .populate("user", "name email alias") // Get basic user data
+      .sort({ createdAt: -1 }) // Most recent first
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
@@ -37,7 +37,7 @@ const getLogs = async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Error al obtener los logs", error: error.message });
+      .json({ message: "Error getting logs", error: error.message });
   }
 };
 

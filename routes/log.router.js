@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const { getLogs } = require("../controllers/log.controller");
+const checkAuth = require("../middlewares/check-auth.js");
+const logController = require("../controllers/log.controller");
 
-// Probablemente quieras añadir middlewares de autenticación y autorización aquí.
+// You'll probably want to add authentication and authorization middlewares here.
 // const { isAuthenticated, isAdmin } = require("../middlewares/auth.middleware");
 
-// GET /api/logs -> Obtiene todos los logs con filtros y paginación.
-// Debería ser una ruta protegida solo para administradores.
-router.get("/", /* isAuthenticated, isAdmin, */ getLogs);
+// GET /logs -> Get all logs with filtering and pagination.
+// This should be a protected route for administrators only.
+router.get("/logs", checkAuth, logController.getLogs);
 
 module.exports = router;
