@@ -57,6 +57,7 @@ api.use(require("./routes/category.router"));
 api.use(require("./routes/notification.router"));
 api.use(require("./routes/importer.router"));
 api.use(require("./routes/bot.router"));
+api.use(require("./routes/log.router"));
 
 // =======================
 // Health check

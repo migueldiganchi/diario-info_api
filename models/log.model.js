@@ -12,6 +12,9 @@ const LogSchema = new Schema(
   }
 );
 
+LogSchema.index({ user: 1, createdAt: -1 });
+LogSchema.index({ action: 1, createdAt: -1 });
+
 const Log = mongoose.models.Log || mongoose.model("Log", LogSchema);
 
 module.exports = Log;
