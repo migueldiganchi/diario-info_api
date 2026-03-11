@@ -33,4 +33,7 @@ router.get("/reset/:token", [], authController.validatePasswordReset);
 // Create New Password
 router.put("/reset/:token/password", [], authController.createPassword);
 
+// Get Dashboard Stats
+router.get("/stats", checkAuth, authController.getStats);
+
 module.exports = router;

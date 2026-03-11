@@ -1,6 +1,7 @@
 const User = require("../models/user.model.js");
 const Notification = require("../models/notification.model.js");
 const Log = require("../models/log.model.js");
+const Article = require("../models/article.model.js"); // Importar el modelo Article
 
 const API_ENVIRONMENT = process.env.API_ENVIRONMENT;
 const isProduction = API_ENVIRONMENT && API_ENVIRONMENT == "production";
@@ -191,6 +192,57 @@ exports.signup = async (req, res, next) => {
     console.error("[err]", err);
     res.status(500).json({
       message: err.message || "There was an error while create the account",
+    });
+  }
+};
+
+/**
+ * Get stats for the dashboard.
+ * - Published articles: global count for everyone.
+ * - Drafts: global count for admins, personal for other users.
+ * - Users: global count for admins.
+ */
+exports.getStats = async (req, res) => {
+  try {
+    // Get authenticated user from checkAuth middleware
+    const { userId, role } = req.userData;
+    const isAdmin = role === "Admin";
+    const stats = {
+      publishedArticles: 0,
+      draftArticles: 0,
+      usersCount: 0,
+    };
+
+    // The count of published articles is global and shown to everyone.
+    const publishedPromise = Article.countDocuments({ status: "published" });
+
+    if (isAdmin) {
+      // The administrator sees all global statistics.
+      const [publishedArticles, draftArticles, usersCount] = await Promise.all([
+        publishedPromise,
+        Article.countDocuments({ status: "draft" }),
+        User.countDocuments(),
+      ]);
+      stats.publishedArticles = publishedArticles;
+      stats.draftArticles = draftArticles;
+      stats.usersCount = usersCount;
+    } else {
+      // Other users see the global count of published articles and their own drafts.
+      const [publishedArticles, draftArticles] = await Promise.all([
+        publishedPromise,
+        Article.countDocuments({ createdBy: userId, status: "draft" }), // Assuming the author field in the Article model is 'createdBy'.
+      ]);
+      stats.publishedArticles = publishedArticles;
+      stats.draftArticles = draftArticles;
+      // usersCount remains 0 for non-admins, which is what the frontend expects.
+    }
+
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({
+      message: "An error occurred while fetching the statistics.",
+      error: error.message,
     });
   }
 };
