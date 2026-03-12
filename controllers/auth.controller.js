@@ -204,9 +204,22 @@ exports.signup = async (req, res, next) => {
  */
 exports.getStats = async (req, res) => {
   try {
-    // Get authenticated user from checkAuth middleware
-    const { userId, role } = req.userData;
+    // Get authenticated user's ID from checkAuth middleware
+    const { userId } = req;
+    if (!userId) {
+      // This case should ideally be caught by check-auth, but as a safeguard:
+      return res.status(401).json({ message: "Authentication failed." });
+    }
+
+    // Fetch the user from the database to get their role
+    const user = await User.findById(userId).select("role");
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const { role } = user;
     const isAdmin = role === "Admin";
+
     const stats = {
       publishedArticles: 0,
       draftArticles: 0,
@@ -230,7 +243,7 @@ exports.getStats = async (req, res) => {
       // Other users see the global count of published articles and their own drafts.
       const [publishedArticles, draftArticles] = await Promise.all([
         publishedPromise,
-        Article.countDocuments({ createdBy: userId, status: "draft" }), // Assuming the author field in the Article model is 'createdBy'.
+        Article.countDocuments({ createdBy: userId, status: "draft" }), // The author field in the Article model is 'createdBy'.
       ]);
       stats.publishedArticles = publishedArticles;
       stats.draftArticles = draftArticles;
