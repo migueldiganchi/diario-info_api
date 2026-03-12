@@ -21,6 +21,9 @@ router.get("/me", checkAuth, authController.me);
 // Update Authenticated User Info
 router.put("/me", checkAuth, authController.updateAuthUser);
 
+// Get Dashboard Stats
+router.get("/stats", checkAuth, authController.getStats);
+
 // Update Authenticated User Password
 router.put("/me/password", checkAuth, authController.updatePassword);
 
@@ -32,8 +35,5 @@ router.get("/reset/:token", [], authController.validatePasswordReset);
 
 // Create New Password
 router.put("/reset/:token/password", [], authController.createPassword);
-
-// Get Dashboard Stats
-router.get("/stats", checkAuth, authController.getStats);
 
 module.exports = router;

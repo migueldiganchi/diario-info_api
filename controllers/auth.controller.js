@@ -196,12 +196,6 @@ exports.signup = async (req, res, next) => {
   }
 };
 
-/**
- * Get stats for the dashboard.
- * - Published articles: global count for everyone.
- * - Drafts: global count for admins, personal for other users.
- * - Users: global count for admins.
- */
 exports.getStats = async (req, res) => {
   try {
     // Get authenticated user's ID from checkAuth middleware
