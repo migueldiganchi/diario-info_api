@@ -220,13 +220,10 @@ exports.getStats = async (req, res) => {
       usersCount: 0,
     };
 
-    // The count of published articles is global and shown to everyone.
-    const publishedPromise = Article.countDocuments({ status: "published" });
-
     if (isAdmin) {
       // The administrator sees all global statistics.
       const [publishedArticles, draftArticles, usersCount] = await Promise.all([
-        publishedPromise,
+        Article.countDocuments({ status: "published" }),
         Article.countDocuments({ status: "draft" }),
         User.countDocuments(),
       ]);
@@ -234,9 +231,9 @@ exports.getStats = async (req, res) => {
       stats.draftArticles = draftArticles;
       stats.usersCount = usersCount;
     } else {
-      // Other users see the global count of published articles and their own drafts.
+      // Editors or Directors see only their own statistics.
       const [publishedArticles, draftArticles] = await Promise.all([
-        publishedPromise,
+        Article.countDocuments({ createdBy: userId, status: "published" }),
         Article.countDocuments({ createdBy: userId, status: "draft" }), // The author field in the Article model is 'createdBy'.
       ]);
       stats.publishedArticles = publishedArticles;
