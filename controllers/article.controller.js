@@ -1,6 +1,7 @@
 const Article = require("../models/article.model.js");
 const Log = require("../models/log.model.js");
 const User = require("../models/user.model.js");
+const Category = require("../models/category.model.js");
 
 // Create and Save a new Article
 exports.createArticle = async (req, res) => {
@@ -77,14 +78,31 @@ exports.getArticles = async (req, res) => {
   if (status) {
     condition.status = status;
   }
-  if (category) {
-    condition.category = category;
-  }
   if (destination) {
     condition.destination = destination;
   }
 
   try {
+    // Resolve category slug or ID to a valid Category ObjectId
+    if (category) {
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(category);
+      const categoryDoc = await Category.findOne({
+        [isObjectId ? "_id" : "slug"]: category,
+        disabledAt: null,
+      }).select("_id");
+
+      if (!categoryDoc) {
+        return res.send({
+          success: true,
+          articles: [],
+          total: 0,
+          totalPages: 0,
+          nextPage: null,
+        });
+      }
+      condition.category = categoryDoc._id;
+    }
+
     const requester = await User.findById(req.userId);
 
     // If user is not an admin, they can only see their own articles.
@@ -107,11 +125,16 @@ exports.getArticles = async (req, res) => {
       .skip((page - 1) * pageSize)
       .limit(pageSize);
 
+    // Populate category data for all users
+    query = query.populate("category", "name slug color");
+
     // Sort by createdAt descending (newest first)
     if (requester && requester.isAdmin()) {
       query = query.populate("createdBy", "name alias pictureUrl");
     }
-    const articles = await await query;
+
+    const articles = await query;
+
     res.send({
       success: true,
       articles,
@@ -143,14 +166,31 @@ exports.getPublicArticles = async (req, res) => {
       { content: { $regex: searchRegex } },
     ];
   }
-  if (category) {
-    condition.category = category;
-  }
   if (destination) {
     condition.destination = destination;
   }
 
   try {
+    // Resolve category slug or ID to a valid Category ObjectId
+    if (category) {
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(category);
+      const categoryDoc = await Category.findOne({
+        [isObjectId ? "_id" : "slug"]: category,
+        disabledAt: null,
+      }).select("_id");
+
+      if (!categoryDoc) {
+        return res.send({
+          success: true,
+          articles: [],
+          total: 0,
+          totalPages: 0,
+          nextPage: null,
+        });
+      }
+      condition.category = categoryDoc._id;
+    }
+
     const total = await Article.countDocuments(condition);
     const totalPages = Math.ceil(total / pageSize);
     const nextPage = page + 1 <= totalPages ? page + 1 : null;
@@ -162,6 +202,7 @@ exports.getPublicArticles = async (req, res) => {
       .limit(pageSize)
       .populate("author", "name alias pictureUrl")
       .populate("createdBy", "name alias pictureUrl bio")
+      .populate("category", "name slug color")
       .populate({
         path: "imageId",
         model: "File",
@@ -196,6 +237,7 @@ exports.getArticle = async (req, res) => {
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
       data = await Article.findById(id)
         .populate("createdBy", "-password")
+        .populate("category", "name slug color")
         .populate({
           path: "imageId",
           model: "File",
@@ -207,6 +249,7 @@ exports.getArticle = async (req, res) => {
     if (!data) {
       data = await Article.findOne({ slug: id })
         .populate("createdBy", "-password")
+        .populate("category", "name slug color")
         .populate({
           path: "imageId",
           model: "File",
@@ -251,6 +294,7 @@ exports.getRelatedArticles = async (req, res) => {
     })
       .sort({ publicationDate: -1 })
       .limit(limit)
+      .populate("category", "name slug color")
       .populate("author", "name alias pictureUrl")
       .populate("createdBy", "name alias pictureUrl bio")
       .populate({

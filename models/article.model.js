@@ -8,7 +8,7 @@ const ArticleSchema = new Schema(
     description: { type: String, required: true, trim: true },
     content: { type: String, required: true }, // Replaces contentBlocks
     imageId: { type: String, required: true },
-    category: { type: String, required: true },
+    category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     status: {
       type: String,
       required: true,

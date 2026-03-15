@@ -110,15 +110,20 @@ exports.getCategory = async (req, res) => {
   const id = req.params.id;
 
   try {
+    const condition = { disabledAt: null };
     let data;
+
     // Check if it's a valid ObjectId
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      data = await Category.findById(id).populate("parent", "name slug");
+      data = await Category.findOne({ _id: id, ...condition }).populate(
+        "parent",
+        "name slug",
+      );
     }
 
     // If not found by ID, try by slug
     if (!data) {
-      data = await Category.findOne({ slug: id }).populate(
+      data = await Category.findOne({ slug: id, ...condition }).populate(
         "parent",
         "name slug",
       );
