@@ -191,9 +191,6 @@ exports.updateBlock = async (req, res) => {
       new: true,
     }).populate("template");
 
-    console.log("[[[ Request Body: ]]]", JSON.stringify(req.body, null, 2));
-    console.log("[[[ Updated Block: ]]]", JSON.stringify(data, null, 2));
-
     if (!data) {
       res.status(404).send({
         message: `Cannot update Block with id=${id}. Maybe Block was not found!`,
