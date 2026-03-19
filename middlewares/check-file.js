@@ -1,8 +1,5 @@
-// check-file.js
-
 const multer = require("multer");
-
-// Configuración del almacenamiento de archivos
+// Setup for file storage
 const multerFileStorage = multer.diskStorage({
   destination: (req, file, callback) => {
     callback(null, "./uploads");
@@ -12,35 +9,35 @@ const multerFileStorage = multer.diskStorage({
       null,
       new Date().toISOString().replace(/:/g, "-").replace(".", "-") +
         "-" +
-        file.originalname
+        file.originalname,
     );
   },
 });
 
-// Filtro para imágenes
+// Images allowed: PNG, JPG, JPEG
 const imageFileFilter = (req, file, callback) => {
   const allowedMimeTypes = ["image/png", "image/jpg", "image/jpeg"];
   callback(null, allowedMimeTypes.includes(file.mimetype));
 };
 
-// Filtro para cualquier tipo de archivo
+// Any file allowed: no restrictions
 const anyFileFilter = (req, file, callback) => {
   callback(null, true); // Permitir cualquier tipo de archivo
 };
 
-// Middleware para subir imágenes
+// Middleware to upload images only (PNG, JPG, JPEG)
 const imgFileUploader = multer({
   storage: multerFileStorage,
   fileFilter: imageFileFilter,
 });
 
-// Middleware para subir cualquier archivo
+// Middleware to upload any file (no restrictions)
 const anyFileUploader = multer({
   storage: multerFileStorage,
   fileFilter: anyFileFilter,
 });
 
-// Exportar ambos middleware según el caso de uso
+// Export both middlewares according to the use case
 module.exports = {
   imgFileUploader,
   anyFileUploader,
