@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const checkAuth = require("../middlewares/check-auth");
 const fileController = require("../controllers/file.controller");
-const { imgFileUploader } = require("../middlewares/check-file");
+const { mediaFileUploader } = require("../middlewares/check-file");
 
 // Retrieve all Files
 router.get("/files", checkAuth, fileController.getFiles);
@@ -11,7 +11,7 @@ router.get("/files", checkAuth, fileController.getFiles);
 router.post(
   "/files/upload",
   checkAuth,
-  imgFileUploader.single("file"),
+  mediaFileUploader.single("file"),
   fileController.uploadFile,
 );
 

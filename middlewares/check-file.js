@@ -20,15 +20,36 @@ const imageFileFilter = (req, file, callback) => {
   callback(null, allowedMimeTypes.includes(file.mimetype));
 };
 
+// Media allowed: PNG, JPG, JPEG, GIF, MP3, WAV, MP4
+const mediaFileFilter = (req, file, callback) => {
+  const allowedMimeTypes = [
+    "image/png",
+    "image/jpg",
+    "image/jpeg",
+    "image/gif",
+    "audio/mpeg",
+    "audio/wav",
+    "video/mp4",
+    "video/mpeg",
+  ];
+  callback(null, allowedMimeTypes.includes(file.mimetype));
+};
+
 // Any file allowed: no restrictions
 const anyFileFilter = (req, file, callback) => {
-  callback(null, true); // Permitir cualquier tipo de archivo
+  callback(null, true); // Allow all files without restrictions
 };
 
 // Middleware to upload images only (PNG, JPG, JPEG)
 const imgFileUploader = multer({
   storage: multerFileStorage,
   fileFilter: imageFileFilter,
+});
+
+// Middleware to upload media files (Images, Audio, Video)
+const mediaFileUploader = multer({
+  storage: multerFileStorage,
+  fileFilter: mediaFileFilter,
 });
 
 // Middleware to upload any file (no restrictions)
@@ -40,5 +61,6 @@ const anyFileUploader = multer({
 // Export both middlewares according to the use case
 module.exports = {
   imgFileUploader,
+  mediaFileUploader,
   anyFileUploader,
 };

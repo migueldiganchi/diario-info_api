@@ -213,9 +213,9 @@ exports.deleteFile = async (req, res) => {
     }
 
     // Remove physical files
-    const filePath = path.join(__dirname, "../../", file.fileUrl);
+    const filePath = path.join(__dirname, "../", file.fileUrl);
     const thumbnailPath = file.thumbnailUrl
-      ? path.join(__dirname, "../../", file.thumbnailUrl)
+      ? path.join(__dirname, "../", file.thumbnailUrl)
       : null;
 
     try {
