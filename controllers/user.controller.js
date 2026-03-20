@@ -4,6 +4,16 @@ const Article = require("../models/article.model.js");
 const Log = require("../models/log.model.js");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
+
+// Transporter for sending emails
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 const getUserByUnique = async (userId, res) => {
   let user = await User.findOne({ alias: userId }).select(
@@ -77,6 +87,48 @@ exports.getUser = async (req, res) => {
     console.log("[err]", err);
     res.status(500).json({
       message: "There was an error while get the user",
+    });
+  }
+};
+
+exports.sendContactMessage = async (req, res) => {
+  const { name, email, subject, message } = req.body;
+
+  // Basic validation
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({
+      success: false,
+      message: "Todos los campos son requeridos.",
+    });
+  }
+
+  const mailOptions = {
+    from: `"Formulario de Contacto" <${process.env.EMAIL_USER}>`, // Sender address
+    to: process.env.EMAIL_USER, // List of receivers
+    replyTo: email, // The user's email
+    subject: `[Contacto Web] - ${subject}`, // Subject line
+    html: `
+      <h2>Nuevo mensaje desde el formulario de contacto</h2>
+      <p><strong>Nombre:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Asunto:</strong> ${subject}</p>
+      <hr>
+      <p><strong>Mensaje:</strong></p>
+      <p>${message}</p>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({
+      success: true,
+      message: "Tu mensaje ha sido enviado correctamente. Nos pondremos en contacto contigo pronto.",
+    });
+  } catch (error) {
+    console.error("[sendContactMessage] Error sending email:", error);
+    res.status(500).json({
+      success: false,
+      message: "Hubo un error al enviar tu mensaje. Por favor, intenta de nuevo más tarde.",
     });
   }
 };

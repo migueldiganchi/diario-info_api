@@ -45,4 +45,7 @@ router.get(
   userController.getUserQualification,
 );
 
+// Handle contact form submission
+router.post("/contact", userController.sendContactMessage);
+
 module.exports = router;
