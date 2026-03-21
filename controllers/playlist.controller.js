@@ -53,9 +53,27 @@ exports.createPlaylist = async (req, res) => {
 
 // Get all playlists (for management)
 exports.getPlaylists = async (req, res) => {
+  const { search } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const query = {};
+
+  if (search) {
+    const searchRegex = new RegExp(search, "i");
+    query.$or = [{ name: searchRegex }, { description: searchRegex }];
+  }
+
   try {
-    const playlists = await Playlist.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, playlists });
+    const total = await Playlist.countDocuments(query);
+    const playlists = await Playlist.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize);
+
+    const totalPages = Math.ceil(total / pageSize);
+    const nextPage = page + 1 <= totalPages ? page + 1 : null;
+
+    res.status(200).json({ success: true, playlists, total, totalPages, nextPage });
   } catch (err) {
     res.status(500).json({ message: "Error obteniendo playlists" });
   }
