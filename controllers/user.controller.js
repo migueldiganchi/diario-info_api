@@ -83,7 +83,7 @@ exports.getUser = async (req, res) => {
       userRatingData,
     });
   } catch (err) {
-    // Error hanlder
+    // Error handler
     console.log("[err]", err);
     res.status(500).json({
       message: "There was an error while get the user",
@@ -473,7 +473,7 @@ exports.createUserQualification = async (req, res) => {
       qualification: createdQualification,
     });
   } catch (err) {
-    // Error hanlder
+    // Error handler
     console.log("[err]", err);
     res.status(500).json({
       message: "There was an error while rate the user",
@@ -545,7 +545,7 @@ exports.getUserQualification = async (req, res) => {
       qualification: userQualification,
     });
   } catch (err) {
-    // Error hanlder
+    // Error handler
     console.log("[err]", err);
     res.status(500).json({
       message: "There was an error while get the user",

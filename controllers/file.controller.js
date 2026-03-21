@@ -125,17 +125,17 @@ exports.uploadFile = async (req, res) => {
     const filePath = req.file.path;
     const fileUrl = `/uploads/${req.file.filename}`;
 
-    // Generar thumbnail
+    // Generate thumbnail
     const thumbnailFilename = `thumb_${req.file.filename}`;
     const thumbnailPath = path.join(path.dirname(filePath), thumbnailFilename);
 
     const thumbCreated = await generateThumbnail(filePath, thumbnailPath);
     const thumbnailUrl = thumbCreated ? `/uploads/${thumbnailFilename}` : null;
 
-    // Obtener dimensiones
+    // Get dimensions
     const dimensions = await getImageDimensions(filePath);
 
-    // Crear registro en DB
+    // Create DB record
     const file = new File({
       fileName: req.file.filename,
       originalName: req.file.originalname,

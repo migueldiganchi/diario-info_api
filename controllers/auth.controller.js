@@ -1,7 +1,7 @@
 const User = require("../models/user.model.js");
 const Notification = require("../models/notification.model.js");
 const Log = require("../models/log.model.js");
-const Article = require("../models/article.model.js"); // Importar el modelo Article
+const Article = require("../models/article.model.js"); // Import the Article model
 
 const API_ENVIRONMENT = process.env.API_ENVIRONMENT;
 const isProduction = API_ENVIRONMENT && API_ENVIRONMENT == "production";
@@ -286,7 +286,7 @@ exports.activateAccount = async (req, res) => {
       user: user,
     });
   } catch (err) {
-    // Error hanlder
+    // Error handler
     console.log("[err]", err);
     res.status(500).json({
       message: "There was an error while activate the account",
@@ -425,7 +425,7 @@ exports.me = async (req, res) => {
       message: "User logged out successfully",
     });
   } catch (err) {
-    // Error hanlder
+    // Error handler
     console.log("[err]", err);
     res.status(500).json({
       message: "There was an error while get the authenticated user",
@@ -589,7 +589,7 @@ exports.reset = (req, res) => {
       });
     });
   } catch (err) {
-    console.log("[err]", error);
+    console.log("[err]", err);
 
     res.status(500).json({
       message: "Something went wrong while request password reset",
