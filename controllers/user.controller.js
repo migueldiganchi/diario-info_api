@@ -2,6 +2,7 @@ const User = require("../models/user.model.js");
 const Qualification = require("../models/qualification.model.js");
 const Article = require("../models/article.model.js");
 const Log = require("../models/log.model.js");
+const Interaction = require("../models/interaction.model.js");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
@@ -91,6 +92,143 @@ exports.getUser = async (req, res) => {
   }
 };
 
+// Helper genérico para manejar interacciones (favorite, save, like)
+const handleToggleInteraction = async (userId, articleId, type, res) => {
+  try {
+    const userIdStr = userId ? userId.toString() : null;
+
+    // 1. Validación de sesión
+    if (!userIdStr || !userIdStr.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(401).json({ message: "Sesión inválida o expirada." });
+    }
+
+    if (!articleId) {
+      return res.status(400).json({ message: "El ID del artículo es requerido" });
+    }
+
+    // 2. Verificar que el artículo existe y obtener el autor
+    const article = await Article.findById(articleId).select("createdBy");
+    if (!article) {
+      return res.status(404).json({ message: "El artículo no existe" });
+    }
+
+    // 3. Evitar que el autor interactúe con su propio artículo
+    if (article.createdBy && article.createdBy.toString() === userIdStr) {
+      const actionLabel = type === "save" ? "guardar" : "marcar como favorito";
+      return res.status(400).json({
+        success: false,
+        message: `No puedes ${actionLabel} tu propio artículo.`,
+      });
+    }
+
+    // 4. Lógica de Toggle
+    const existingInteraction = await Interaction.findOne({
+      user: userIdStr,
+      article: articleId,
+      interactionType: type,
+    });
+
+    let action = "";
+    let active = false;
+
+    if (existingInteraction) {
+      await Interaction.findByIdAndDelete(existingInteraction._id);
+      action = `ARTICLE_${type.toUpperCase()}_REMOVED`;
+      active = false;
+    } else {
+      await Interaction.create({
+        user: userIdStr,
+        article: articleId,
+        interactionType: type,
+      });
+      action = `ARTICLE_${type.toUpperCase()}_ADDED`;
+      active = true;
+    }
+
+    // 5. Registro de Log
+    await Log.create({
+      user: userIdStr,
+      action: action,
+      details: `User interaction ${type} updated for article ${articleId}`,
+    });
+
+    res.status(200).json({ success: true, [type]: active });
+  } catch (err) {
+    console.error("[handleToggleInteraction] Error:", err);
+    res.status(500).json({ message: "Error al procesar la interacción" });
+  }
+};
+
+exports.toggleFavoriteArticle = async (req, res) => {
+  await handleToggleInteraction(
+    req.userId,
+    req.body.articleId,
+    "favorite",
+    res,
+  );
+};
+
+exports.toggleSavedArticle = async (req, res) => {
+  await handleToggleInteraction(req.userId, req.body.articleId, "save", res);
+};
+
+const getArticlesByInteractionType = async (req, res, type) => {
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
+  const userId = req.userId;
+
+  try {
+    const queryConditions = {
+      user: userId,
+      interactionType: type,
+    };
+
+    const total = await Interaction.countDocuments(queryConditions);
+    const totalPages = Math.ceil(total / pageSize);
+    const nextPage = page + 1 <= totalPages ? page + 1 : null;
+
+    const interactions = await Interaction.find(queryConditions)
+      .sort({ createdAt: -1 })
+      .skip(pageSize * (page - 1))
+      .limit(pageSize)
+      .populate({
+        path: "article",
+        populate: [
+          { path: "category", select: "name slug color" },
+          { path: "createdBy", select: "name alias pictureUrl" },
+          {
+            path: "imageId",
+            model: "File",
+            select: "fileUrl thumbnailUrl originalName",
+          },
+        ],
+      });
+
+    const articles = interactions.map((i) => i.article).filter(Boolean);
+
+    res.status(200).json({
+      success: true,
+      articles,
+      total,
+      totalPages,
+      nextPage,
+    });
+  } catch (err) {
+    console.error(`[getArticlesByInteractionType][${type}]`, err);
+    res
+      .status(500)
+      .json({ message: `Error al obtener artículos con interacción: ${type}` });
+  }
+};
+
+exports.getFavoriteArticles = async (req, res) => {
+  await getArticlesByInteractionType(req, res, "favorite");
+};
+
+exports.getSavedArticles = async (req, res) => {
+  await getArticlesByInteractionType(req, res, "save");
+};
+
 exports.sendContactMessage = async (req, res) => {
   const { name, email, subject, message } = req.body;
 
@@ -122,13 +260,15 @@ exports.sendContactMessage = async (req, res) => {
     await transporter.sendMail(mailOptions);
     res.status(200).json({
       success: true,
-      message: "Tu mensaje ha sido enviado correctamente. Nos pondremos en contacto contigo pronto.",
+      message:
+        "Tu mensaje ha sido enviado correctamente. Nos pondremos en contacto contigo pronto.",
     });
   } catch (error) {
     console.error("[sendContactMessage] Error sending email:", error);
     res.status(500).json({
       success: false,
-      message: "Hubo un error al enviar tu mensaje. Por favor, intenta de nuevo más tarde.",
+      message:
+        "Hubo un error al enviar tu mensaje. Por favor, intenta de nuevo más tarde.",
     });
   }
 };

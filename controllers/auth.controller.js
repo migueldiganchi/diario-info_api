@@ -198,6 +198,15 @@ exports.signup = async (req, res, next) => {
 
 exports.getStats = async (req, res) => {
   try {
+    if (!req.userId) {
+      return res.status(401).json({ message: "Authentication failed." });
+    }
+
+    // Validate ObjectId format to prevent CastError
+    if (!req.userId.toString().match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Invalid User ID format." });
+    }
+
     // Get authenticated user's ID from checkAuth middleware
     const { userId } = req;
     if (!userId) {
@@ -412,17 +421,22 @@ exports.signout = (req, res) => {
 };
 
 exports.me = async (req, res) => {
-  console.log("[me] Getting authenticated user info for:", req.userId);
+  if (!req.userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
   try {
-    // Clear all cookies
     const myUserId = req.userId;
+    if (!myUserId.toString().match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Invalid User ID format" });
+    }
+
     const myUser = await User.findById(myUserId);
 
-    // Respond to user
     res.status(200).json({
       success: true,
       user: myUser,
-      message: "User logged out successfully",
+      message: "User loaded successfully",
     });
   } catch (err) {
     // Error handler
@@ -434,6 +448,10 @@ exports.me = async (req, res) => {
 };
 
 exports.updateAuthUser = async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
   const userToUpdateId = req.userId;
   const {
     pictureUrl,
@@ -485,6 +503,10 @@ exports.updateAuthUser = async (req, res) => {
 };
 
 exports.updatePassword = async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
   const { currentPassword, newPassword } = req.body;
   const userId = req.userId;
 

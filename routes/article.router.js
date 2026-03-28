@@ -10,13 +10,13 @@ router.post("/articles", checkAuth, articles.createArticle);
 router.get("/articles", checkAuth, articles.getArticles);
 
 // Retrieve all public Articles, sorted by priority
-router.get("/articles/public", [], articles.getPublicArticles);
+router.get("/articles/public", [checkAuth], articles.getPublicArticles);
 
 // Retrieve a single Article with id
-router.get("/article/:id", [], articles.getArticle);
+router.get("/article/:id", [checkAuth], articles.getArticle);
 
 // Retrieve related Articles
-router.get("/article/:id/related", [], articles.getRelatedArticles);
+router.get("/article/:id/related", [checkAuth], articles.getRelatedArticles);
 
 // Update an Article with id
 router.put("/article/:id", checkAuth, articles.updateArticle);

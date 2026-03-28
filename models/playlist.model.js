@@ -25,7 +25,7 @@ const PlaylistSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Helper to detect platform based on URL

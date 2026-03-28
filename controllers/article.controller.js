@@ -2,10 +2,77 @@ const Article = require("../models/article.model.js");
 const Log = require("../models/log.model.js");
 const User = require("../models/user.model.js");
 const Category = require("../models/category.model.js");
+const Interaction = require("../models/interaction.model.js");
+
+// Helper to add interaction stats to articles
+const addInteractionStats = async (articles, userId = null) => {
+  if (!articles) return null;
+  const isArray = Array.isArray(articles);
+  const articleList = isArray ? articles : [articles];
+
+  if (articleList.length === 0) return isArray ? [] : null;
+
+  const articleIds = articleList.map((a) => a._id);
+  const userIdStr = userId ? userId.toString() : null;
+  const isIdValid = userIdStr && userIdStr.match(/^[0-9a-fA-F]{24}$/);
+
+  const stats = await Interaction.aggregate([
+    { $match: { article: { $in: articleIds } } },
+    {
+      $group: {
+        _id: { article: "$article", type: "$interactionType" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  // Get user-specific interactions if userId is provided
+  const userInteractions = isIdValid
+    ? await Interaction.find({
+        user: userIdStr,
+        article: { $in: articleIds },
+      })
+    : [];
+
+  const results = articleList.map((article) => {
+    const articleData = article.toJSON();
+    const articleIdStr = article._id.toString();
+    const articleStats = stats.filter((s) => s._id.article.toString() === articleIdStr);
+
+    articleData.favoritesCount =
+      articleStats.find((s) => s._id.type === "favorite")?.count || 0;
+    articleData.savesCount =
+      articleStats.find((s) => s._id.type === "save")?.count || 0;
+    articleData.likesCount =
+      articleStats.find((s) => s._id.type === "like")?.count || 0;
+
+    // Add boolean flags for the current user
+    if (isIdValid) {
+      const userArticleInteractions = userInteractions.filter(
+        (ui) => ui.article.toString() === articleIdStr,
+      );
+      articleData.isFavorite = userArticleInteractions.some((ui) => ui.interactionType === "favorite");
+      articleData.isSaved = userArticleInteractions.some((ui) => ui.interactionType === "save");
+      articleData.isLiked = userArticleInteractions.some((ui) => ui.interactionType === "like");
+    } else {
+      articleData.isFavorite = false;
+      articleData.isSaved = false;
+      articleData.isLiked = false;
+    }
+
+    return articleData;
+  });
+
+  return isArray ? results : results[0];
+};
 
 // Create and Save a new Article
 exports.createArticle = async (req, res) => {
   // Validate request
+  if (!req.userId) {
+    return res.status(401).send({ message: "Authentication required to create articles." });
+  }
+
   if (!req.body) {
     return res.status(400).send({ message: "Content cannot be empty!" });
   }
@@ -58,6 +125,10 @@ exports.createArticle = async (req, res) => {
 
 // Retrieve all Articles from the database.
 exports.getArticles = async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).send({ message: "Authentication required." });
+  }
+
   // For admins or own user's articles
   const { title, status, category, destination, author } = req.query;
   const page = parseInt(req.query.page) || 1;
@@ -103,7 +174,11 @@ exports.getArticles = async (req, res) => {
       condition.category = categoryDoc._id;
     }
 
-    const requester = await User.findById(req.userId);
+    // Validate userId format before DB query
+    const userIdStr = req.userId ? req.userId.toString() : null;
+    const isIdValid = userIdStr && userIdStr.match(/^[0-9a-fA-F]{24}$/);
+    
+    const requester = isIdValid ? await User.findById(userIdStr) : null;
 
     // If user is not an admin, they can only see their own articles.
     if (!requester || !requester.isAdmin()) {
@@ -134,10 +209,11 @@ exports.getArticles = async (req, res) => {
     }
 
     const articles = await query;
+    const articlesWithStats = await addInteractionStats(articles, req.userId);
 
     res.send({
       success: true,
-      articles,
+      articles: articlesWithStats,
       total,
       totalPages,
       nextPage,
@@ -209,9 +285,11 @@ exports.getPublicArticles = async (req, res) => {
         select: "fileUrl thumbnailUrl originalName",
       });
 
+    const articlesWithStats = await addInteractionStats(articles, req.userId);
+
     res.send({
       success: true,
-      articles,
+      articles: articlesWithStats,
       total,
       totalPages,
       nextPage,
@@ -259,7 +337,13 @@ exports.getArticle = async (req, res) => {
 
     if (!data)
       res.status(404).send({ message: "Not found Article with id " + id });
-    else res.send(data);
+    else {
+      const articleWithStats = await addInteractionStats(data, req.userId);
+      res.send({
+        success: true,
+        article: articleWithStats
+      });
+    }
   } catch (err) {
     res.status(500).send({ message: "Error retrieving Article with id=" + id });
   }
@@ -303,7 +387,9 @@ exports.getRelatedArticles = async (req, res) => {
         select: "fileUrl thumbnailUrl originalName",
       });
 
-    res.send({ success: true, articles });
+    const articlesWithStats = await addInteractionStats(articles, req.userId);
+
+    res.send({ success: true, articles: articlesWithStats });
   } catch (err) {
     res.status(500).send({ message: "Error retrieving related articles" });
   }
@@ -311,6 +397,10 @@ exports.getRelatedArticles = async (req, res) => {
 
 // Update an Article by the id in the request
 exports.updateArticle = async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).send({ message: "Authentication required." });
+  }
+
   if (!req.body) {
     return res.status(400).send({
       message: "Data to update can not be empty!",
@@ -350,6 +440,10 @@ exports.updateArticle = async (req, res) => {
 // Delete an Article with the specified id in the request
 exports.deleteArticle = async (req, res) => {
   const id = req.params.id;
+
+  if (!req.userId) {
+    return res.status(401).send({ message: "Authentication required." });
+  }
 
   try {
     const data = await Article.findByIdAndDelete(id);

@@ -9,6 +9,22 @@ router.get("/users", checkAuth, userController.getUsers);
 // Create a new User (Admin)
 router.post("/users", checkAuth, userController.createUser);
 
+// Favorites / Interactions
+router.get("/user/favorites", checkAuth, userController.getFavoriteArticles);
+
+// Toggle favorite article
+router.post(
+  "/user/favorites/toggle",
+  checkAuth,
+  userController.toggleFavoriteArticle,
+);
+
+// Saved for later
+router.get("/user/saved", checkAuth, userController.getSavedArticles);
+
+// Toggle saved for later
+router.post("/user/saved/toggle", checkAuth, userController.toggleSavedArticle);
+
 // Retrieve a single User with id
 router.get("/user/:id", [], userController.getUser);
 
