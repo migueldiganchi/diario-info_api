@@ -92,36 +92,38 @@ exports.getUser = async (req, res) => {
   }
 };
 
-// Helper genérico para manejar interacciones (favorite, save, like)
+// Helper function to handle both favorite and save interactions
 const handleToggleInteraction = async (userId, articleId, type, res) => {
   try {
     const userIdStr = userId ? userId.toString() : null;
 
-    // 1. Validación de sesión
+    // 1. Validate User ID and Article ID
     if (!userIdStr || !userIdStr.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(401).json({ message: "Sesión inválida o expirada." });
+      return res.status(401).json({ message: "Invalid or expired session." });
     }
 
     if (!articleId) {
-      return res.status(400).json({ message: "El ID del artículo es requerido" });
+      return res
+        .status(400)
+        .json({ message: "Article ID is required." });
     }
 
-    // 2. Verificar que el artículo existe y obtener el autor
+    // 2. Verify that the article exists and get the author
     const article = await Article.findById(articleId).select("createdBy");
     if (!article) {
-      return res.status(404).json({ message: "El artículo no existe" });
+      return res.status(404).json({ message: "Article not found." });
     }
 
-    // 3. Evitar que el autor interactúe con su propio artículo
+    // 3. Avoid self-interaction
     if (article.createdBy && article.createdBy.toString() === userIdStr) {
-      const actionLabel = type === "save" ? "guardar" : "marcar como favorito";
+      const actionLabel = type === "save" ? "save" : "favorite";
       return res.status(400).json({
         success: false,
-        message: `No puedes ${actionLabel} tu propio artículo.`,
+        message: `You cannot ${actionLabel} your own article.`,
       });
     }
 
-    // 4. Lógica de Toggle
+    // 4. Toggler logic
     const existingInteraction = await Interaction.findOne({
       user: userIdStr,
       article: articleId,
@@ -145,7 +147,7 @@ const handleToggleInteraction = async (userId, articleId, type, res) => {
       active = true;
     }
 
-    // 5. Registro de Log
+    // 5. Log record
     await Log.create({
       user: userIdStr,
       action: action,
@@ -155,7 +157,7 @@ const handleToggleInteraction = async (userId, articleId, type, res) => {
     res.status(200).json({ success: true, [type]: active });
   } catch (err) {
     console.error("[handleToggleInteraction] Error:", err);
-    res.status(500).json({ message: "Error al procesar la interacción" });
+    res.status(500).json({ message: "Error processing interaction." });
   }
 };
 
@@ -217,7 +219,7 @@ const getArticlesByInteractionType = async (req, res, type) => {
     console.error(`[getArticlesByInteractionType][${type}]`, err);
     res
       .status(500)
-      .json({ message: `Error al obtener artículos con interacción: ${type}` });
+      .json({ message: `Error fetching articles with interaction type: ${type}` });
   }
 };
 
@@ -236,22 +238,22 @@ exports.sendContactMessage = async (req, res) => {
   if (!name || !email || !subject || !message) {
     return res.status(400).json({
       success: false,
-      message: "Todos los campos son requeridos.",
+      message: "All fields are required.",
     });
   }
 
   const mailOptions = {
-    from: `"Formulario de Contacto" <${process.env.EMAIL_USER}>`, // Sender address
+    from: `"Contact Form" <${process.env.EMAIL_USER}>`, // Sender address
     to: process.env.EMAIL_USER, // List of receivers
     replyTo: email, // The user's email
-    subject: `[Contacto Web] - ${subject}`, // Subject line
+    subject: `[Web Contact] - ${subject}`, // Subject line
     html: `
-      <h2>Nuevo mensaje desde el formulario de contacto</h2>
-      <p><strong>Nombre:</strong> ${name}</p>
+      <h2>New message from the contact form</h2>
+      <p><strong>Name:</strong> ${name}</p>
       <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Asunto:</strong> ${subject}</p>
+      <p><strong>Subject:</strong> ${subject}</p>
       <hr>
-      <p><strong>Mensaje:</strong></p>
+      <p><strong>Message:</strong></p>
       <p>${message}</p>
     `,
   };
@@ -261,14 +263,14 @@ exports.sendContactMessage = async (req, res) => {
     res.status(200).json({
       success: true,
       message:
-        "Tu mensaje ha sido enviado correctamente. Nos pondremos en contacto contigo pronto.",
+        "Your message has been sent successfully. We will contact you soon.",
     });
   } catch (error) {
     console.error("[sendContactMessage] Error sending email:", error);
     res.status(500).json({
       success: false,
       message:
-        "Hubo un error al enviar tu mensaje. Por favor, intenta de nuevo más tarde.",
+        "There was an error sending your message. Please try again later.",
     });
   }
 };
