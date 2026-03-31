@@ -15,7 +15,7 @@ const generateSlug = (text) => {
 // Create a new Playlist
 exports.createPlaylist = async (req, res) => {
   try {
-    const { name, description, items, isVisible } = req.body;
+    const { name, description, items, isVisible, orientation } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "El nombre es requerido" });
@@ -28,6 +28,7 @@ exports.createPlaylist = async (req, res) => {
       description,
       slug,
       items: items || [],
+      orientation: orientation || "unique",
       isVisible: isVisible !== undefined ? isVisible : true,
       createdBy: req.userId,
     });

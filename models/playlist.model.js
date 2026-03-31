@@ -20,6 +20,11 @@ const PlaylistSchema = new Schema(
     description: { type: String },
     slug: { type: String, unique: true, trim: true },
     items: [PlaylistItemSchema],
+    orientation: {
+      type: String,
+      enum: ["vertical", "horizontal", "unique"],
+      default: "unique",
+    },
     isVisible: { type: Boolean, default: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
