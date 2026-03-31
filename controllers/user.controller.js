@@ -177,6 +177,7 @@ exports.toggleSavedArticle = async (req, res) => {
 const getArticlesByInteractionType = async (req, res, type) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
+  const { term, category } = req.query;
   const userId = req.userId;
 
   try {
@@ -184,6 +185,22 @@ const getArticlesByInteractionType = async (req, res, type) => {
       user: userId,
       interactionType: type,
     };
+
+    // Búsqueda por texto o categoría si se proporcionan
+    if (term || category) {
+      const articleQuery = {};
+      if (term) {
+        const regex = new RegExp(term, "i");
+        articleQuery.$or = [{ title: regex }, { description: regex }];
+      }
+      if (category) {
+        articleQuery.category = category;
+      }
+
+      // Obtenemos los IDs de los artículos que coinciden con la búsqueda
+      const matchingArticles = await Article.find(articleQuery).select("_id");
+      queryConditions.article = { $in: matchingArticles.map((a) => a._id) };
+    }
 
     const total = await Interaction.countDocuments(queryConditions);
     const totalPages = Math.ceil(total / pageSize);

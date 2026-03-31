@@ -2,6 +2,7 @@ const User = require("../models/user.model.js");
 const Notification = require("../models/notification.model.js");
 const Log = require("../models/log.model.js");
 const Article = require("../models/article.model.js"); // Import the Article model
+const Interaction = require("../models/interaction.model.js");
 
 const API_ENVIRONMENT = process.env.API_ENVIRONMENT;
 const isProduction = API_ENVIRONMENT && API_ENVIRONMENT == "production";
@@ -222,32 +223,58 @@ exports.getStats = async (req, res) => {
 
     const { role } = user;
     const isAdmin = role === "Admin";
+    const isHighProfile = ["Admin", "Director", "Editor"].includes(role);
 
     const stats = {
       publishedArticles: 0,
       draftArticles: 0,
       usersCount: 0,
+      favoritesCount: 0,
+      savesCount: 0,
     };
 
     if (isAdmin) {
       // The administrator sees all global statistics.
-      const [publishedArticles, draftArticles, usersCount] = await Promise.all([
+      const [
+        publishedArticles,
+        draftArticles,
+        usersCount,
+        favoritesCount,
+        savesCount,
+      ] = await Promise.all([
         Article.countDocuments({ status: "published" }),
         Article.countDocuments({ status: "draft" }),
         User.countDocuments(),
+        Interaction.countDocuments({ interactionType: "favorite" }),
+        Interaction.countDocuments({ interactionType: "save" }),
       ]);
       stats.publishedArticles = publishedArticles;
       stats.draftArticles = draftArticles;
       stats.usersCount = usersCount;
+      stats.favoritesCount = favoritesCount;
+      stats.savesCount = savesCount;
     } else {
-      // Editors or Directors see only their own statistics.
+      // Editors, Directors or other users see only their own statistics.
       const [publishedArticles, draftArticles] = await Promise.all([
         Article.countDocuments({ createdBy: userId, status: "published" }),
         Article.countDocuments({ createdBy: userId, status: "draft" }), // The author field in the Article model is 'createdBy'.
       ]);
       stats.publishedArticles = publishedArticles;
       stats.draftArticles = draftArticles;
-      // usersCount remains 0 for non-admins, which is what the frontend expects.
+
+      // High profiles (Director, Editor) get interaction stats for their own articles
+      if (isHighProfile) {
+        const myArticles = await Article.find({ createdBy: userId }).select("_id");
+        const myArticleIds = myArticles.map((a) => a._id);
+
+        const [favoritesCount, savesCount] = await Promise.all([
+          Interaction.countDocuments({ article: { $in: myArticleIds }, interactionType: "favorite" }),
+          Interaction.countDocuments({ article: { $in: myArticleIds }, interactionType: "save" }),
+        ]);
+
+        stats.favoritesCount = favoritesCount;
+        stats.savesCount = savesCount;
+      }
     }
 
     res.status(200).json(stats);
