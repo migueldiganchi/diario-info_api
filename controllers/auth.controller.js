@@ -133,6 +133,7 @@ exports.signup = async (req, res, next) => {
     return res.status(303).send({
       // https://www.rfc-editor.org/rfc/rfc7231#section-4.3.3
       message: "User already exists",
+      actionKey: "SIGNUP_USER_EXISTS",
     });
   }
 
@@ -188,6 +189,7 @@ exports.signup = async (req, res, next) => {
       success: true,
       message: `User ${createdUser.name} was created successfuly`,
       user: createdUser,
+      actionKey: "SIGNUP_SUCCESS",
     });
   } catch (err) {
     console.error("[err]", err);
@@ -320,6 +322,7 @@ exports.activateAccount = async (req, res) => {
       success: true,
       message: "Your account has been activated successfully",
       user: user,
+      actionKey: "ACCOUNT_ACTIVATION_SUCCESS",
     });
   } catch (err) {
     // Error handler
@@ -350,12 +353,14 @@ exports.signin = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         message: `User with this email could not be found: ${email}`,
+        actionKey: "SIGNIN_USER_NOT_FOUND",
       });
     }
 
     if (user.status === 0) {
       return res.status(403).json({
         message: "This user account has been deactivated.",
+        actionKey: "SIGNIN_USER_DEACTIVATED",
       });
     }
 
@@ -364,6 +369,7 @@ exports.signin = async (req, res) => {
     if (!isRightPassword) {
       return res.status(403).json({
         message: "Wrong password!",
+        actionKey: "SIGNIN_WRONG_PASSWORD",
       });
     }
 
@@ -381,6 +387,7 @@ exports.signin = async (req, res) => {
         email: user.email,
         status: null,
         message: errorMessage,
+        actionKey: "SIGNIN_USER_NOT_ACTIVE",
       });
     }
 
@@ -414,6 +421,7 @@ exports.signin = async (req, res) => {
       userName: user.name,
       userEmail: user.email,
       userTrackingKey: user.trackingKey,
+      actionKey: "SIGNIN_SUCCESS",
     });
   } catch (err) {
     // User find error handler
@@ -444,6 +452,7 @@ exports.signout = (req, res) => {
   res.status(200).json({
     success: true,
     message: "User logged out successfully",
+    actionKey: "SIGNOUT_SUCCESS",
   });
 };
 
@@ -520,6 +529,7 @@ exports.updateAuthUser = async (req, res) => {
     res.status(201).json({
       status: true,
       userId: updatedUser._id,
+      actionKey: "AUTH_USER_UPDATED",
     });
   } catch (err) {
     console.error("[err]", err);
@@ -566,6 +576,7 @@ exports.updatePassword = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Contraseña actualizada correctamente",
+      actionKey: "PASSWORD_UPDATED",
     });
   } catch (err) {
     console.error("[updatePassword]", err);
@@ -597,6 +608,7 @@ exports.reset = (req, res) => {
       if (!user) {
         return res.status(404).json({
           message: `User was not found with this email: ${email}`,
+          actionKey: "PASSWORD_RESET_USER_NOT_FOUND",
         });
       }
 
@@ -635,6 +647,7 @@ exports.reset = (req, res) => {
         message: "Password reset successfully",
         resetEmail: email,
         resetURL: resetURL,
+        actionKey: "PASSWORD_RESET_REQUESTED",
       });
     });
   } catch (err) {
@@ -658,6 +671,7 @@ exports.validatePasswordReset = async (req, res) => {
     if (!user) {
       return res.status(500).json({
         message: "Password reset token is not valid",
+        actionKey: "PASSWORD_RESET_TOKEN_INVALID",
       });
     }
 
@@ -706,6 +720,7 @@ exports.createPassword = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "New password was saved successfuly",
+      actionKey: "PASSWORD_RESET_COMPLETED",
     });
   } catch (err) {
     console.log("[err]", err);

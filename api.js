@@ -89,7 +89,7 @@ api.listen(PORT, () => {
     conn = getConnectionString();
   } catch (err) {
     console.error("❌ Mongo config error:", err.message);
-    return; // 👈 NO matar Passenger
+    return; // Stop if config is invalid
   }
 
   if (!conn) {

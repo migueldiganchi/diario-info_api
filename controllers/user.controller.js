@@ -33,6 +33,7 @@ const getUserByUnique = async (userId, res) => {
   if (!user) {
     return res.status(404).json({
       message: `User was not Found with userId: ${userId}`,
+      actionKey: "USER_NOT_FOUND",
     });
   }
 
@@ -103,23 +104,28 @@ const handleToggleInteraction = async (userId, articleId, type, res) => {
     }
 
     if (!articleId) {
-      return res
-        .status(400)
-        .json({ message: "Article ID is required." });
+      return res.status(400).json({ message: "Article ID is required." });
     }
 
     // 2. Verify that the article exists and get the author
     const article = await Article.findById(articleId).select("createdBy");
     if (!article) {
-      return res.status(404).json({ message: "Article not found." });
+      return res.status(404).json({
+        message: "Article not found.",
+        actionKey: "ARTICLE_NOT_FOUND",
+      });
     }
 
     // 3. Avoid self-interaction
     if (article.createdBy && article.createdBy.toString() === userIdStr) {
+      console.log(
+        `User ${userIdStr} attempted to ${type} their own article ${articleId}`,
+      );
       const actionLabel = type === "save" ? "save" : "favorite";
       return res.status(400).json({
         success: false,
         message: `You cannot ${actionLabel} your own article.`,
+        actionKey: "FORBIDDEN_SELF_INTERACTION",
       });
     }
 
@@ -131,11 +137,13 @@ const handleToggleInteraction = async (userId, articleId, type, res) => {
     });
 
     let action = "";
+    let actionKey = "";
     let active = false;
 
     if (existingInteraction) {
       await Interaction.findByIdAndDelete(existingInteraction._id);
       action = `ARTICLE_${type.toUpperCase()}_REMOVED`;
+      actionKey = `${type.toUpperCase()}_REMOVED`;
       active = false;
     } else {
       await Interaction.create({
@@ -144,6 +152,7 @@ const handleToggleInteraction = async (userId, articleId, type, res) => {
         interactionType: type,
       });
       action = `ARTICLE_${type.toUpperCase()}_ADDED`;
+      actionKey = `${type.toUpperCase()}_ADDED`;
       active = true;
     }
 
@@ -154,7 +163,7 @@ const handleToggleInteraction = async (userId, articleId, type, res) => {
       details: `User interaction ${type} updated for article ${articleId}`,
     });
 
-    res.status(200).json({ success: true, [type]: active });
+    res.status(200).json({ success: true, [type]: active, actionKey });
   } catch (err) {
     console.error("[handleToggleInteraction] Error:", err);
     res.status(500).json({ message: "Error processing interaction." });
@@ -186,7 +195,7 @@ const getArticlesByInteractionType = async (req, res, type) => {
       interactionType: type,
     };
 
-    // Búsqueda por texto o categoría si se proporcionan
+    // Text search or category filter if provided
     if (term || category) {
       const articleQuery = {};
       if (term) {
@@ -197,7 +206,7 @@ const getArticlesByInteractionType = async (req, res, type) => {
         articleQuery.category = category;
       }
 
-      // Obtenemos los IDs de los artículos que coinciden con la búsqueda
+      // Get article IDs matching the search criteria
       const matchingArticles = await Article.find(articleQuery).select("_id");
       queryConditions.article = { $in: matchingArticles.map((a) => a._id) };
     }
@@ -234,9 +243,9 @@ const getArticlesByInteractionType = async (req, res, type) => {
     });
   } catch (err) {
     console.error(`[getArticlesByInteractionType][${type}]`, err);
-    res
-      .status(500)
-      .json({ message: `Error fetching articles with interaction type: ${type}` });
+    res.status(500).json({
+      message: `Error fetching articles with interaction type: ${type}`,
+    });
   }
 };
 
@@ -281,6 +290,7 @@ exports.sendContactMessage = async (req, res) => {
       success: true,
       message:
         "Your message has been sent successfully. We will contact you soon.",
+      actionKey: "CONTACT_MESSAGE_SENT",
     });
   } catch (error) {
     console.error("[sendContactMessage] Error sending email:", error);
@@ -402,6 +412,7 @@ exports.createUser = async (req, res) => {
       success: true,
       message: "User created successfully",
       user: savedUser,
+      actionKey: "USER_CREATED",
     });
   } catch (err) {
     console.error("[createUser]", err);
@@ -475,6 +486,7 @@ exports.updateUser = async (req, res) => {
       success: true,
       message: "User updated successfully",
       user: updatedUser,
+      actionKey: "USER_UPDATED",
     });
   } catch (err) {
     console.error("[updateUser]", err);
@@ -544,6 +556,7 @@ exports.updateUserStatus = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "User status updated successfully.",
+      actionKey: "USER_STATUS_UPDATED",
     });
   } catch (err) {
     console.error("[updateUserStatus]", err);
@@ -591,6 +604,7 @@ exports.deleteUser = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "User deleted successfully.",
+      actionKey: "USER_DELETED",
     });
   } catch (err) {
     console.error("[deleteUser]", err);
@@ -630,6 +644,7 @@ exports.createUserQualification = async (req, res) => {
       success: true,
       message: "Qualification was created successfully",
       qualification: createdQualification,
+      actionKey: "QUALIFICATION_CREATED",
     });
   } catch (err) {
     // Error handler
@@ -678,6 +693,7 @@ exports.updateUserQualification = async (req, res) => {
       success: true,
       message: "Qualification was updated successfully",
       qualification: updatedQualification,
+      actionKey: "QUALIFICATION_UPDATED",
     });
   } catch (err) {
     console.error("[err]", err);
