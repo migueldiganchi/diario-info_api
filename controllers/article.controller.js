@@ -37,7 +37,9 @@ const addInteractionStats = async (articles, userId = null) => {
   const results = articleList.map((article) => {
     const articleData = article.toJSON();
     const articleIdStr = article._id.toString();
-    const articleStats = stats.filter((s) => s._id.article.toString() === articleIdStr);
+    const articleStats = stats.filter(
+      (s) => s._id.article.toString() === articleIdStr,
+    );
 
     articleData.favoritesCount =
       articleStats.find((s) => s._id.type === "favorite")?.count || 0;
@@ -51,9 +53,15 @@ const addInteractionStats = async (articles, userId = null) => {
       const userArticleInteractions = userInteractions.filter(
         (ui) => ui.article.toString() === articleIdStr,
       );
-      articleData.isFavorite = userArticleInteractions.some((ui) => ui.interactionType === "favorite");
-      articleData.isSaved = userArticleInteractions.some((ui) => ui.interactionType === "save");
-      articleData.isLiked = userArticleInteractions.some((ui) => ui.interactionType === "like");
+      articleData.isFavorite = userArticleInteractions.some(
+        (ui) => ui.interactionType === "favorite",
+      );
+      articleData.isSaved = userArticleInteractions.some(
+        (ui) => ui.interactionType === "save",
+      );
+      articleData.isLiked = userArticleInteractions.some(
+        (ui) => ui.interactionType === "like",
+      );
     } else {
       articleData.isFavorite = false;
       articleData.isSaved = false;
@@ -70,7 +78,9 @@ const addInteractionStats = async (articles, userId = null) => {
 exports.createArticle = async (req, res) => {
   // Validate request
   if (!req.userId) {
-    return res.status(401).send({ message: "Authentication required to create articles." });
+    return res
+      .status(401)
+      .send({ message: "Authentication required to create articles." });
   }
 
   if (!req.body) {
@@ -177,7 +187,7 @@ exports.getArticles = async (req, res) => {
     // Validate userId format before DB query
     const userIdStr = req.userId ? req.userId.toString() : null;
     const isIdValid = userIdStr && userIdStr.match(/^[0-9a-fA-F]{24}$/);
-    
+
     const requester = isIdValid ? await User.findById(userIdStr) : null;
 
     // If user is not an admin, they can only see their own articles.
@@ -341,7 +351,7 @@ exports.getArticle = async (req, res) => {
       const articleWithStats = await addInteractionStats(data, req.userId);
       res.send({
         success: true,
-        article: articleWithStats
+        article: articleWithStats,
       });
     }
   } catch (err) {
@@ -468,6 +478,111 @@ exports.deleteArticle = async (req, res) => {
   } catch (err) {
     res.status(500).send({
       message: "Could not delete Article with id=" + id,
+    });
+  }
+};
+
+// Retrieve article rankings based on favorites (votes) and saves
+exports.getArticleRankings = async (req, res) => {
+  // Ensure limit is a valid number, default to 10
+  const limit = Math.max(1, parseInt(req.query.limit) || 10);
+
+  try {
+    const getRankingByType = async (type) => {
+      // 1. Get IDs of top articles based on interaction counts from the general public
+      const topInteractedStats = await Interaction.aggregate([
+        {
+          $match: {
+            interactionType: type,
+            article: { $ne: null },
+          },
+        },
+        {
+          $group: {
+            _id: "$article",
+            interactionCount: { $sum: 1 },
+          },
+        },
+        { $sort: { interactionCount: -1 } },
+        { $limit: limit },
+      ]);
+
+      const rankedArticleIds = topInteractedStats.map((s) => s._id);
+
+      // 2. Fetch the articles that have these interactions (only if they are published)
+      let articles = [];
+      if (rankedArticleIds.length > 0) {
+        articles = await Article.find({
+          _id: { $in: rankedArticleIds },
+          status: "published",
+        })
+          .populate("author", "name alias pictureUrl")
+          .populate("createdBy", "name alias pictureUrl bio")
+          .populate("category", "name slug color")
+          .populate({
+            path: "imageId",
+            model: "File",
+            select: "fileUrl thumbnailUrl originalName",
+          });
+      }
+
+      // 3. FILLER: If articles count is less than limit, fill with newest published ones
+      if (articles.length < limit) {
+        const alreadyIncludedIds = articles.map((a) => a._id);
+        const fillerArticles = await Article.find({
+          status: "published",
+          _id: { $nin: alreadyIncludedIds },
+        })
+          .sort({ publicationDate: -1, createdAt: -1 })
+          .limit(limit - articles.length)
+          .populate("author", "name alias pictureUrl")
+          .populate("createdBy", "name alias pictureUrl bio")
+          .populate("category", "name slug color")
+          .populate({
+            path: "imageId",
+            model: "File",
+            select: "fileUrl thumbnailUrl originalName",
+          });
+
+        articles = [...articles, ...fillerArticles];
+      }
+
+      // 4. Enrich with global interaction stats (counts) for all articles in the list
+      const articlesWithStats = await addInteractionStats(articles, null);
+
+      // 5. Final Sorting: By interaction count (desc) then by Date (desc)
+      const countField = type === "favorite" ? "favoritesCount" : "savesCount";
+      
+      return articlesWithStats.sort((a, b) => {
+        const countA = a[countField] || 0;
+        const countB = b[countField] || 0;
+        if (countB !== countA) return countB - countA;
+
+        const timeA = new Date(a.publicationDate || a.createdAt || 0).getTime();
+        const timeB = new Date(b.publicationDate || b.createdAt || 0).getTime();
+        return timeB - timeA;
+      }).slice(0, limit);
+    };
+
+    // Execute both aggregations in parallel for maximum performance
+    const [mostFavorited, mostSaved] = await Promise.all([
+      getRankingByType("favorite"),
+      getRankingByType("save"),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      rankings: {
+        mostFavorited,
+        mostSaved,
+      },
+    });
+  } catch (err) {
+    console.log("[Error retrieving article rankings]:", err);
+
+    res.status(500).send({
+      message:
+        err.message || "Some error occurred while retrieving article rankings.",
     });
   }
 };

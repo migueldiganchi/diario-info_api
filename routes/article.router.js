@@ -12,11 +12,14 @@ router.get("/articles", checkAuth, articles.getArticles);
 // Retrieve all public Articles, sorted by priority
 router.get("/articles/public", [checkAuth], articles.getPublicArticles);
 
+// Retrieve article rankings (Most favorited and Most saved)
+router.get("/articles/rankings", [], articles.getArticleRankings);
+
 // Retrieve a single Article with id
 router.get("/article/:id", [checkAuth], articles.getArticle);
 
 // Retrieve related Articles
-router.get("/article/:id/related", [checkAuth], articles.getRelatedArticles);
+router.get("/article/:id/related", [], articles.getRelatedArticles);
 
 // Update an Article with id
 router.put("/article/:id", checkAuth, articles.updateArticle);
