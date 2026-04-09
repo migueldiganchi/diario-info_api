@@ -22,8 +22,8 @@ const PlaylistSchema = new Schema(
     items: [PlaylistItemSchema],
     orientation: {
       type: String,
-      enum: ["vertical", "horizontal", "unique"],
-      default: "unique",
+      enum: ["vertical", "horizontal"],
+      default: "horizontal",
     },
     isVisible: { type: Boolean, default: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
