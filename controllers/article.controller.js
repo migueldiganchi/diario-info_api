@@ -104,7 +104,7 @@ exports.createArticle = async (req, res) => {
     commentsDisabled: req.body.commentsDisabled || false,
     embeddedVideoUrl: req.body.embeddedVideoUrl,
     keyPoints: req.body.keyPoints,
-    priority: req.body.priority,
+    priority: Number(req.body.priority) || 0,
     destination: req.body.destination,
     validityHours: req.body.validityHours,
     tags: req.body.tags,

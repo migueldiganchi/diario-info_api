@@ -65,7 +65,7 @@ exports.importArticleById = async (req, res) => {
       isHighlighted: (externalArticle.Destacada === 1 || externalArticle.Portada === 1),
       
       author: externalArticle.Usuario || "Importado",
-      priority: externalArticle.Prioridad ? String(externalArticle.Prioridad) : "0",
+      priority: Number(externalArticle.Prioridad) || 0,
       destination: "web",
       articleType: "news",
       

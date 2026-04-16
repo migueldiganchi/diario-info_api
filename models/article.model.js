@@ -25,8 +25,9 @@ const ArticleSchema = new Schema(
     embeddedVideoUrl: { type: String },
     keyPoints: [{ type: String }],
     priority: {
-      type: String,
+      type: Number,
       required: true,
+      default: 0,
     },
     destination: {
       type: String,
