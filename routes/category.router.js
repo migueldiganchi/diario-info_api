@@ -18,4 +18,7 @@ router.put("/category/:id", checkAuth, categoryController.updateCategory);
 // Delete a Category with id (soft delete)
 router.delete("/category/:id", checkAuth, categoryController.deleteCategory);
 
+// Reorder Categories
+router.post("/categories/reorder", checkAuth, categoryController.reorderCategories);
+
 module.exports = router;

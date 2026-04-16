@@ -6,6 +6,7 @@ const categorySchema = new Schema(
     name: { type: String, required: true, unique: true },
     slug: { type: String, required: true, unique: true, index: true },
     description: { type: String },
+    order: { type: Number, default: 0, index: true },
     color: { type: String, default: "#cccccc" },
     parent: { type: Schema.Types.ObjectId, ref: "Category", default: null },
     disabledAt: { type: Date, default: null },

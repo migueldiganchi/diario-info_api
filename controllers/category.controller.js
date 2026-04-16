@@ -1,5 +1,6 @@
 const Category = require("../models/category.model.js");
 const Log = require("../models/log.model.js");
+const mongoose = require("mongoose");
 
 const generateSlug = (text) => {
   if (!text) return "";
@@ -19,7 +20,7 @@ exports.createCategory = async (req, res) => {
     return res.status(400).send({ message: "Name can not be empty!" });
   }
 
-  const { name, description, color, parent, slug } = req.body;
+  const { name, description, color, parent, slug, order } = req.body;
 
   // Auto-generate slug if not provided
   const finalSlug = slug || generateSlug(name);
@@ -28,6 +29,7 @@ exports.createCategory = async (req, res) => {
     name,
     slug: finalSlug,
     description,
+    order: order ?? 0,
     color,
     parent: parent || null,
   });
@@ -83,7 +85,7 @@ exports.getCategories = async (req, res) => {
     const total = await Category.countDocuments(condition);
     const categories = await Category.find(condition)
       .populate("parent", "name slug")
-      .sort({ name: 1 })
+      .sort({ order: 1, name: 1 })
       .skip((page - 1) * pageSize)
       .limit(pageSize);
 
@@ -101,6 +103,39 @@ exports.getCategories = async (req, res) => {
     res.status(500).send({
       message:
         err.message || "Some error occurred while retrieving categories.",
+    });
+  }
+};
+
+// Reorder Categories
+exports.reorderCategories = async (req, res) => {
+  try {
+    const { ids, startIndex = 0 } = req.body;
+
+    if (!Array.isArray(ids)) {
+      return res.status(400).send({ message: "An array of IDs is required" });
+    }
+
+    const now = new Date();
+    const bulkOps = ids.map((id, index) => ({
+      updateOne: {
+        filter: { _id: new mongoose.Types.ObjectId(id) },
+        update: { $set: { order: startIndex + index, updatedAt: now } },
+      },
+    }));
+
+    if (bulkOps.length > 0) {
+      await Category.bulkWrite(bulkOps, { ordered: false });
+    }
+
+    res.send({
+      success: true,
+      message: "Categories order updated successfully",
+    });
+  } catch (err) {
+    console.log("Error reordering categories:", err);
+    res.status(500).send({
+      message: err.message || "Error reordering categories",
     });
   }
 };
