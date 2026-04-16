@@ -1,5 +1,6 @@
 const ImporterModel = require("../models/importer.model");
 const Article = require("../models/article.model");
+const Category = require("../models/category.model");
 const Log = require("../models/log.model");
 
 // Helper to generate clean slugs
@@ -9,11 +10,11 @@ const generateSlug = (text) => {
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, "-")     // Replace spaces with -
+    .replace(/\s+/g, "-") // Replace spaces with -
     .replace(/[^\w\-]+/g, "") // Remove non-alphanumeric characters
-    .replace(/\-\-+/g, "-")   // Replace multiple - with single -
-    .replace(/^-+/, "")       // Trim - from start
-    .replace(/-+$/, "");      // Trim - from end
+    .replace(/\-\-+/g, "-") // Replace multiple - with single -
+    .replace(/^-+/, "") // Trim - from start
+    .replace(/-+$/, ""); // Trim - from end
 };
 
 exports.importArticleById = async (req, res) => {
@@ -28,14 +29,49 @@ exports.importArticleById = async (req, res) => {
     const externalArticle = await ImporterModel.getExternalArticleById(id);
 
     if (!externalArticle) {
-      return res.status(404).send({ 
-        message: `No se encontró la nota con ID ${id} en la base de datos externa.` 
+      return res.status(404).send({
+        message: `No se encontró la nota con ID ${id} en la base de datos externa.`,
       });
+    }
+
+    // 2. Resolve Category
+    let category = null;
+
+    // Get the real section name from the MySQL 'Secciones' table using the SeccionId from the article
+    const mysqlSeccionName = await ImporterModel.getSeccionById(
+      externalArticle.SeccionId,
+    );
+
+    if (mysqlSeccionName) {
+      // We search in Mongo by name ignoring case (equivalent to comparing in UPPERCASE)
+      category = await Category.findOne({
+        name: { $regex: new RegExp(`^${mysqlSeccionName.trim()}$`, "i") },
+        disabledAt: null,
+      });
+    }
+
+    // IF category doesn't exist or the section name wasn't found in MySQL, use "Global"
+    if (!category) {
+      const fallbackName = "Global";
+      category = await Category.findOne({
+        name: { $regex: new RegExp(`^${fallbackName}$`, "i") },
+      });
+
+      if (!category) {
+        category = new Category({
+          name: fallbackName,
+          slug: "sin-seccion",
+          description:
+            "Artículos importados cuya sección original no fue encontrada.",
+          order: 999,
+        });
+        await category.save();
+      }
     }
 
     // 2. Prepare and transform data for MongoDB
     let slug = generateSlug(externalArticle.Titulo);
-    
+
     // Check if an article with that slug already exists to avoid collisions
     // If it exists, append the original ID to the end to make it unique
     const existingArticle = await Article.findOne({ slug: slug });
@@ -49,35 +85,40 @@ exports.importArticleById = async (req, res) => {
       slug: slug,
       description: externalArticle.Resumen || externalArticle.Titulo, // Fallback if summary is empty
       content: externalArticle.Nota || "",
-      
+
       // Image handling: If no PieMultimedia, use a placeholder
-      imageId: externalArticle.PieMultimedia && externalArticle.PieMultimedia.length > 5 
-        ? externalArticle.PieMultimedia 
-        : "default-placeholder.jpg",
-        
+      imageId:
+        externalArticle.PieMultimedia &&
+        externalArticle.PieMultimedia.length > 5
+          ? externalArticle.PieMultimedia
+          : "default-placeholder.jpg",
+
       // Simple category mapping using section ID
-      category: `Seccion-${externalArticle.SeccionId}`, 
-      
+      category: category._id,
+
       // Status logic
       status: externalArticle.ActivaImpreso === 1 ? "published" : "draft",
-      
+
       // Highlighted logic
-      isHighlighted: (externalArticle.Destacada === 1 || externalArticle.Portada === 1),
-      
+      isHighlighted:
+        externalArticle.Destacada === 1 || externalArticle.Portada === 1,
+
       author: externalArticle.Usuario || "Importado",
       priority: Number(externalArticle.Prioridad) || 0,
       destination: "web",
       articleType: "news",
-      
+
       // Use Pretitulo and PostTitulo as key points
-      keyPoints: [externalArticle.Pretitulo, externalArticle.PostTitulo].filter(Boolean),
-      
+      keyPoints: [externalArticle.Pretitulo, externalArticle.PostTitulo].filter(
+        Boolean,
+      ),
+
       // Dates
       date: new Date().toISOString(),
       publicationDate: new Date(),
-      
+
       // Audit
-      createdBy: req.userId, 
+      createdBy: req.userId,
     };
 
     // 3. Save to MongoDB
@@ -97,13 +138,17 @@ exports.importArticleById = async (req, res) => {
       success: true,
       message: "Artículo importado exitosamente",
       article: savedArticle,
-      originalId: id
+      originalId: id,
     });
-
   } catch (err) {
-    console.error("[Import Error]", err);
+    console.error("[IMPORT ERROR - FULL]", err);
+
     res.status(500).send({
-      message: err.message || "Ocurrió un error durante la importación.",
+      success: false,
+      message: "Technical error importing article (MySQL).",
+      sqlMessage: err.sqlMessage || err.message,
+      sqlQuery: err.sql,
+      code: err.code || "UNKNOWN_ERROR",
     });
   }
 };

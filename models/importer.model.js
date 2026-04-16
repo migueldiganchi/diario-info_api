@@ -31,6 +31,18 @@ const getExternalArticleById = async (id) => {
   return rows && rows.length > 0 ? rows[0] : null;
 };
 
+/**
+ * Retrieves the section name from the legacy Secciones table by its ID.
+ * @param {number|string} id - The ID of the section (SeccionId).
+ * @returns {Promise<string|null>} - The section name or null if it does not exist.
+ */
+const getSeccionById = async (id) => {
+  const query = "SELECT Seccion FROM Secciones WHERE SeccionId = ?";
+  const rows = await executeQuery(query, [id]);
+  return rows && rows.length > 0 ? rows[0].Seccion : null;
+};
+
 module.exports = {
   getExternalArticleById,
+  getSeccionById,
 };
