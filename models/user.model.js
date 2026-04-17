@@ -57,6 +57,11 @@ userSchema.methods.isAdmin = function () {
   return this.role === "Admin" || this.isSuperUser === true;
 };
 
+// Method to check if user is Admin
+userSchema.methods.isDirector = function () {
+  return this.role === "Director";
+};
+
 // MMethod to check if user can edit
 userSchema.methods.canEdit = function () {
   return ["Admin", "Editor", "Director"].includes(this.role);

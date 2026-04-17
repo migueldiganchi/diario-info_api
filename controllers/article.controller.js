@@ -191,7 +191,7 @@ exports.getArticles = async (req, res) => {
     const requester = isIdValid ? await User.findById(userIdStr) : null;
 
     // If user is not an admin, they can only see their own articles.
-    if (!requester || !requester.isAdmin()) {
+    if (!requester || !requester.isAdmin() || !requester.isDirector()) {
       condition.createdBy = req.userId;
     } else if (author) {
       // Admin can filter by author
@@ -552,16 +552,22 @@ exports.getArticleRankings = async (req, res) => {
 
       // 5. Final Sorting: By interaction count (desc) then by Date (desc)
       const countField = type === "favorite" ? "favoritesCount" : "savesCount";
-      
-      return articlesWithStats.sort((a, b) => {
-        const countA = a[countField] || 0;
-        const countB = b[countField] || 0;
-        if (countB !== countA) return countB - countA;
 
-        const timeA = new Date(a.publicationDate || a.createdAt || 0).getTime();
-        const timeB = new Date(b.publicationDate || b.createdAt || 0).getTime();
-        return timeB - timeA;
-      }).slice(0, limit);
+      return articlesWithStats
+        .sort((a, b) => {
+          const countA = a[countField] || 0;
+          const countB = b[countField] || 0;
+          if (countB !== countA) return countB - countA;
+
+          const timeA = new Date(
+            a.publicationDate || a.createdAt || 0,
+          ).getTime();
+          const timeB = new Date(
+            b.publicationDate || b.createdAt || 0,
+          ).getTime();
+          return timeB - timeA;
+        })
+        .slice(0, limit);
     };
 
     // Execute both aggregations in parallel for maximum performance
