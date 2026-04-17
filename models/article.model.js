@@ -5,9 +5,9 @@ const ArticleSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
     slug: { type: String, trim: true, unique: true },
-    description: { type: String, required: true, trim: true },
+    description: { type: String, trim: true, required: true },
     content: { type: String, required: true }, // Replaces contentBlocks
-    imageId: { type: String, required: true },
+    imageId: { type: String },
     category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     status: {
       type: String,
@@ -29,13 +29,10 @@ const ArticleSchema = new Schema(
       required: true,
       default: 0,
     },
-    destination: {
-      type: String,
-      required: true,
-    },
+    destination: { type: String },
     validityHours: { type: Number, default: 24 },
     tags: { type: [String], index: true },
-    articleType: { type: String, required: true },
+    articleType: { type: String },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

@@ -36,21 +36,20 @@ exports.importArticleById = async (req, res) => {
 
     // 2. Resolve Category
     let category = null;
-
-    // Get the real section name from the MySQL 'Secciones' table using the SeccionId from the article
     const mysqlSeccionName = await ImporterModel.getSeccionById(
       externalArticle.SeccionId,
     );
 
     if (mysqlSeccionName) {
-      // We search in Mongo by name ignoring case (equivalent to comparing in UPPERCASE)
-      category = await Category.findOne({
-        name: { $regex: new RegExp(`^${mysqlSeccionName.trim()}$`, "i") },
-        disabledAt: null,
-      });
+      // We fetch all categories to compare in-memory and ensure accuracy with UpperCase
+      const allCategories = await Category.find({ disabledAt: null });
+      category = allCategories.find(
+        (c) =>
+          c.name.trim().toUpperCase() === mysqlSeccionName.trim().toUpperCase(),
+      );
     }
 
-    // IF category doesn't exist or the section name wasn't found in MySQL, use "Global"
+    // Fallback to "Global" if no name match is found
     if (!category) {
       const fallbackName = "Global";
       category = await Category.findOne({
@@ -60,7 +59,7 @@ exports.importArticleById = async (req, res) => {
       if (!category) {
         category = new Category({
           name: fallbackName,
-          slug: "sin-seccion",
+          slug: "global",
           description:
             "Artículos importados cuya sección original no fue encontrada.",
           order: 999,
@@ -69,68 +68,41 @@ exports.importArticleById = async (req, res) => {
       }
     }
 
-    // 2. Prepare and transform data for MongoDB
+    // 3. Prepare data for MongoDB
     let slug = generateSlug(externalArticle.Titulo);
-
-    // Check if an article with that slug already exists to avoid collisions
-    // If it exists, append the original ID to the end to make it unique
     const existingArticle = await Article.findOne({ slug: slug });
     if (existingArticle) {
       slug = `${slug}-${id}`;
     }
 
-    // Field mapping: Legacy MySQL -> Mongoose Schema
     const newArticleData = {
       title: externalArticle.Titulo,
       slug: slug,
-      description: externalArticle.Resumen || externalArticle.Titulo, // Fallback if summary is empty
+      description: externalArticle.Resumen || externalArticle.Titulo,
       content: externalArticle.Nota || "",
-
-      // Image handling: If no PieMultimedia, use a placeholder
-      imageId:
-        externalArticle.PieMultimedia &&
-        externalArticle.PieMultimedia.length > 5
-          ? externalArticle.PieMultimedia
-          : "default-placeholder.jpg",
-
-      // Simple category mapping using section ID
+      imageId: null,
       category: category._id,
-
-      // Status logic
       status: externalArticle.ActivaImpreso === 1 ? "published" : "draft",
-
-      // Highlighted logic
       isHighlighted:
         externalArticle.Destacada === 1 || externalArticle.Portada === 1,
-
       author: externalArticle.Usuario || "Importado",
       priority: Number(externalArticle.Prioridad) || 0,
-      destination: "web",
-      articleType: "news",
-
-      // Use Pretitulo and PostTitulo as key points
       keyPoints: [externalArticle.Pretitulo, externalArticle.PostTitulo].filter(
         Boolean,
       ),
-
-      // Dates
       date: new Date().toISOString(),
       publicationDate: new Date(),
-
-      // Audit
       createdBy: req.userId,
     };
 
-    // 3. Save to MongoDB
     const article = new Article(newArticleData);
     const savedArticle = await article.save();
 
-    // 4. Register Log of the operation
     if (req.userId) {
       await Log.create({
         user: req.userId,
         action: "ARTICLE_IMPORTED",
-        details: `Imported Article ID ${id} from MySQL as MongoID ${savedArticle._id}`,
+        details: `Imported Article ID ${id} from MySQL`,
       });
     }
 
@@ -143,12 +115,32 @@ exports.importArticleById = async (req, res) => {
   } catch (err) {
     console.error("[IMPORT ERROR - FULL]", err);
 
+    // Serializamos el error de forma segura para la respuesta
+    const errorDetails =
+      process.env.NODE_ENV === "production"
+        ? {
+            message:
+              "Error técnico durante la importación. Contacte al soporte.",
+          }
+        : {
+            message: err.message,
+            sqlMessage: err.sqlMessage,
+            sqlState: err.sqlState,
+            code: err.code,
+            errno: err.errno,
+            sql: err.sql,
+            connectionDebug: {
+              host: process.env.DB_HOST,
+              user: process.env.DB_USER,
+              database: process.env.DB_NAME,
+            },
+          };
+
     res.status(500).send({
       success: false,
-      message: "Technical error importing article (MySQL).",
-      sqlMessage: err.sqlMessage || err.message,
-      sqlQuery: err.sql,
-      code: err.code || "UNKNOWN_ERROR",
+      message: "Error técnico detallado para depuración.",
+      error: errorDetails,
+      stack: process.env.NODE_ENV === "production" ? null : err.stack, // Mantenemos el stack para ubicar la línea exacta en el código
     });
   }
 };
