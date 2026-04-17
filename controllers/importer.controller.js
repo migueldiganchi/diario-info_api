@@ -115,7 +115,9 @@ exports.importArticleById = async (req, res) => {
   } catch (err) {
     console.error("[IMPORT ERROR - FULL]", err);
 
-    // Serializamos el error de forma segura para la respuesta
+    // We serialize the error safely for the response, providing 
+    // detailed info in non-production environments while keeping 
+    // it generic in production to avoid exposing sensitive details.
     const errorDetails =
       process.env.NODE_ENV === "production"
         ? {
