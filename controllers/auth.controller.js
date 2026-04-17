@@ -201,23 +201,14 @@ exports.signup = async (req, res, next) => {
 
 exports.getStats = async (req, res) => {
   try {
+    // 1. Auth verification
     if (!req.userId) {
       return res.status(401).json({ message: "Authentication failed." });
     }
 
-    // Validate ObjectId format to prevent CastError
-    if (!req.userId.toString().match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ message: "Invalid User ID format." });
-    }
-
-    // Get authenticated user's ID from checkAuth middleware
     const { userId } = req;
-    if (!userId) {
-      // This case should ideally be caught by check-auth, but as a safeguard:
-      return res.status(401).json({ message: "Authentication failed." });
-    }
 
-    // Fetch the user from the database to get their role
+    // 2. Get the user to check their role
     const user = await User.findById(userId).select("role");
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -225,8 +216,8 @@ exports.getStats = async (req, res) => {
 
     const { role } = user;
     const isAdmin = role === "Admin";
-    const isHighProfile = ["Admin", "Director", "Editor"].includes(role);
 
+    // Stats structure
     const stats = {
       publishedArticles: 0,
       draftArticles: 0,
@@ -236,7 +227,7 @@ exports.getStats = async (req, res) => {
     };
 
     if (isAdmin) {
-      // The administrator sees all global statistics.
+      // Admin logic
       const [
         publishedArticles,
         draftArticles,
@@ -250,36 +241,38 @@ exports.getStats = async (req, res) => {
         Interaction.countDocuments({ interactionType: "favorite" }),
         Interaction.countDocuments({ interactionType: "save" }),
       ]);
+      
       stats.publishedArticles = publishedArticles;
       stats.draftArticles = draftArticles;
       stats.usersCount = usersCount;
       stats.favoritesCount = favoritesCount;
       stats.savesCount = savesCount;
     } else {
-      // Editors, Directors or other users see only their own statistics.
-      const [publishedArticles, draftArticles] = await Promise.all([
+      // Not Admin logic
+      const [
+        publishedArticles, 
+        draftArticles, 
+        personalFavs, 
+        personalSaves
+      ] = await Promise.all([
+        // Articles created by the user (if they are a writer/editor/director)
         Article.countDocuments({ createdBy: userId, status: "published" }),
-        Article.countDocuments({ createdBy: userId, status: "draft" }), // The author field in the Article model is 'createdBy'.
+        Article.countDocuments({ createdBy: userId, status: "draft" }),
+        
+        // Count only the interactions of the user
+        Interaction.countDocuments({ user: userId, interactionType: "favorite" }),
+        Interaction.countDocuments({ user: userId, interactionType: "save" }),
       ]);
+
       stats.publishedArticles = publishedArticles;
       stats.draftArticles = draftArticles;
-
-      // High profiles (Director, Editor) get interaction stats for their own articles
-      if (isHighProfile) {
-        const myArticles = await Article.find({ createdBy: userId }).select("_id");
-        const myArticleIds = myArticles.map((a) => a._id);
-
-        const [favoritesCount, savesCount] = await Promise.all([
-          Interaction.countDocuments({ article: { $in: myArticleIds }, interactionType: "favorite" }),
-          Interaction.countDocuments({ article: { $in: myArticleIds }, interactionType: "save" }),
-        ]);
-
-        stats.favoritesCount = favoritesCount;
-        stats.savesCount = savesCount;
-      }
+      stats.favoritesCount = personalFavs;
+      stats.savesCount = personalSaves;
     }
 
-    res.status(200).json(stats);
+    // 3. Return stats
+    return res.status(200).json(stats);
+
   } catch (error) {
     console.error("Error fetching stats:", error);
     res.status(500).json({
