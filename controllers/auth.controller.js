@@ -216,6 +216,7 @@ exports.getStats = async (req, res) => {
 
     const { role } = user;
     const isAdmin = role === "Admin";
+    const isDirector = role === "Director";
 
     // Stats structure
     const stats = {
@@ -226,7 +227,7 @@ exports.getStats = async (req, res) => {
       savesCount: 0,
     };
 
-    if (isAdmin) {
+    if (isAdmin || isDirector) {
       // Admin logic
       const [
         publishedArticles,
@@ -241,7 +242,7 @@ exports.getStats = async (req, res) => {
         Interaction.countDocuments({ interactionType: "favorite" }),
         Interaction.countDocuments({ interactionType: "save" }),
       ]);
-      
+
       stats.publishedArticles = publishedArticles;
       stats.draftArticles = draftArticles;
       stats.usersCount = usersCount;
@@ -249,20 +250,19 @@ exports.getStats = async (req, res) => {
       stats.savesCount = savesCount;
     } else {
       // Not Admin logic
-      const [
-        publishedArticles, 
-        draftArticles, 
-        personalFavs, 
-        personalSaves
-      ] = await Promise.all([
-        // Articles created by the user (if they are a writer/editor/director)
-        Article.countDocuments({ createdBy: userId, status: "published" }),
-        Article.countDocuments({ createdBy: userId, status: "draft" }),
-        
-        // Count only the interactions of the user
-        Interaction.countDocuments({ user: userId, interactionType: "favorite" }),
-        Interaction.countDocuments({ user: userId, interactionType: "save" }),
-      ]);
+      const [publishedArticles, draftArticles, personalFavs, personalSaves] =
+        await Promise.all([
+          // Articles created by the user (if they are a writer/editor/director)
+          Article.countDocuments({ createdBy: userId, status: "published" }),
+          Article.countDocuments({ createdBy: userId, status: "draft" }),
+
+          // Count only the interactions of the user
+          Interaction.countDocuments({
+            user: userId,
+            interactionType: "favorite",
+          }),
+          Interaction.countDocuments({ user: userId, interactionType: "save" }),
+        ]);
 
       stats.publishedArticles = publishedArticles;
       stats.draftArticles = draftArticles;
@@ -272,7 +272,6 @@ exports.getStats = async (req, res) => {
 
     // 3. Return stats
     return res.status(200).json(stats);
-
   } catch (error) {
     console.error("Error fetching stats:", error);
     res.status(500).json({
