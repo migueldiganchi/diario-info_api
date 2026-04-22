@@ -219,6 +219,7 @@ exports.getArticles = async (req, res) => {
     }
 
     const articles = await query;
+
     const articlesWithStats = await addInteractionStats(articles, req.userId);
 
     res.send({
@@ -240,10 +241,9 @@ exports.getPublicArticles = async (req, res) => {
   const { title, category, destination } = req.query;
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 10;
-  const condition = { status: "published" }; // Only published articles
+  const condition = { status: "published" };
 
   if (title) {
-    // We escape special characters to avoid errors in RegExp and ensure a literal search
     const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const searchRegex = new RegExp(escapedTitle, "i");
     condition.$or = [
@@ -252,12 +252,12 @@ exports.getPublicArticles = async (req, res) => {
       { content: { $regex: searchRegex } },
     ];
   }
+
   if (destination) {
     condition.destination = destination;
   }
 
   try {
-    // Resolve category slug or ID to a valid Category ObjectId
     if (category) {
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(category);
       const categoryDoc = await Category.findOne({
@@ -281,21 +281,80 @@ exports.getPublicArticles = async (req, res) => {
     const totalPages = Math.ceil(total / pageSize);
     const nextPage = page + 1 <= totalPages ? page + 1 : null;
 
-    // Sort by priority descending, then by publicationDate descending
-    const articles = await Article.find(condition)
-      .sort({ priority: -1, publicationDate: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .populate("author", "name alias pictureUrl")
-      .populate("createdBy", "name alias pictureUrl bio")
-      .populate("category", "name slug color")
-      .populate({
-        path: "imageId",
-        model: "File",
-        select: "fileUrl thumbnailUrl originalName",
-      });
+    const articles = await Article.aggregate([
+      { $match: condition },
+      {
+        $addFields: {
+          publicationDay: {
+            $dateFromParts: {
+              year: { $year: "$publicationDate" },
+              month: { $month: "$publicationDate" },
+              day: { $dayOfMonth: "$publicationDate" },
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          publicationDay: -1,
+          priority: -1,
+          publicationDate: -1,
+          _id: -1,
+        },
+      },
+      { $skip: (page - 1) * pageSize },
+      { $limit: pageSize },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: { path: "$category", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "createdBy",
+        },
+      },
+      {
+        $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $lookup: {
+          from: "files",
+          localField: "imageId",
+          foreignField: "_id",
+          as: "imageId",
+        },
+      },
+      {
+        $unwind: { path: "$imageId", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $project: {
+          publicationDay: 0,
+          "createdBy.password": 0,
+          "createdBy.email": 0,
+          "createdBy.role": 0,
+          "createdBy.tokens": 0,
+        },
+      },
+    ]);
 
-    const articlesWithStats = await addInteractionStats(articles, req.userId);
+    // Converts the plain objects returned by aggregate into Mongoose documents so that virtuals and toJSON transformations work correctly in addInteractionStats
+    const hydratedArticles = articles.map((a) => Article.hydrate(a));
+
+    const articlesWithStats = await addInteractionStats(
+      hydratedArticles,
+      req.userId,
+    );
 
     res.send({
       success: true,
@@ -306,7 +365,6 @@ exports.getPublicArticles = async (req, res) => {
     });
   } catch (err) {
     console.error("Error retrieving public articles:", err);
-
     res.status(500).send({
       message:
         err.message || "Some error occurred while retrieving public articles.",

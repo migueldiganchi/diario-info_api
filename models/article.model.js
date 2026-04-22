@@ -52,6 +52,11 @@ ArticleSchema.set("toJSON", {
 // Indexes to optimize common queries
 ArticleSchema.index({ status: 1, createdAt: -1 });
 ArticleSchema.index({ category: 1, status: 1 });
+ArticleSchema.index({
+  status: 1,
+  publicationDate: -1,
+  priority: -1,
+});
 
 // Prevent Mongoose from compiling the model more than once
 const Article =
