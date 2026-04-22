@@ -281,7 +281,8 @@ exports.getPublicArticles = async (req, res) => {
     const totalPages = Math.ceil(total / pageSize);
     const nextPage = page + 1 <= totalPages ? page + 1 : null;
 
-    const articles = await Article.aggregate([
+    // 1. We use aggregation to get the sorted list of article IDs based on the complex sorting criteria
+    const sortedIds = await Article.aggregate([
       { $match: condition },
       {
         $addFields: {
@@ -304,55 +305,29 @@ exports.getPublicArticles = async (req, res) => {
       },
       { $skip: (page - 1) * pageSize },
       { $limit: pageSize },
-      {
-        $lookup: {
-          from: "categories",
-          localField: "category",
-          foreignField: "_id",
-          as: "category",
-        },
-      },
-      {
-        $unwind: { path: "$category", preserveNullAndEmptyArrays: true },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "createdBy",
-          foreignField: "_id",
-          as: "createdBy",
-        },
-      },
-      {
-        $unwind: { path: "$createdBy", preserveNullAndEmptyArrays: true },
-      },
-      {
-        $lookup: {
-          from: "files",
-          localField: "imageId",
-          foreignField: "_id",
-          as: "imageId",
-        },
-      },
-      {
-        $unwind: { path: "$imageId", preserveNullAndEmptyArrays: true },
-      },
-      {
-        $project: {
-          publicationDay: 0,
-          "createdBy.password": 0,
-          "createdBy.email": 0,
-          "createdBy.role": 0,
-          "createdBy.tokens": 0,
-        },
-      },
+      { $project: { _id: 1 } }, // Only return the ID for now
     ]);
 
-    // Converts the plain objects returned by aggregate into Mongoose documents so that virtuals and toJSON transformations work correctly in addInteractionStats
-    const hydratedArticles = articles.map((a) => Article.hydrate(a));
+    const orderedIds = sortedIds.map((a) => a._id);
+
+    // 2. Fetch with populate using the already sorted IDs
+    const articles = await Article.find({ _id: { $in: orderedIds } })
+      .populate("createdBy", "name alias pictureUrl bio")
+      .populate("category", "name slug color")
+      .populate({
+        path: "imageId",
+        model: "File",
+        select: "fileUrl thumbnailUrl originalName",
+      });
+
+    // 3. Reorder according to the original order from the aggregate
+    const articlesMap = new Map(articles.map((a) => [a._id.toString(), a]));
+    const orderedArticles = orderedIds
+      .map((id) => articlesMap.get(id.toString()))
+      .filter(Boolean);
 
     const articlesWithStats = await addInteractionStats(
-      hydratedArticles,
+      orderedArticles,
       req.userId,
     );
 
