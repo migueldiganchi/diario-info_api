@@ -191,7 +191,7 @@ exports.getArticles = async (req, res) => {
     const requester = isIdValid ? await User.findById(userIdStr) : null;
 
     // If user is not an admin, they can only see their own articles.
-    if (!requester || !requester.isAdmin() || !requester.isDirector()) {
+    if (!requester || (!requester.isAdmin() && !requester.isDirector())) {
       condition.createdBy = req.userId;
     } else if (author) {
       // Admin can filter by author
