@@ -281,16 +281,15 @@ exports.getPublicArticles = async (req, res) => {
     const totalPages = Math.ceil(total / pageSize);
     const nextPage = page + 1 <= totalPages ? page + 1 : null;
 
-    // 1. We use aggregation to get the sorted list of article IDs based on the complex sorting criteria
     const sortedIds = await Article.aggregate([
       { $match: condition },
       {
         $addFields: {
           publicationDay: {
-            $dateFromParts: {
-              year: { $year: "$publicationDate" },
-              month: { $month: "$publicationDate" },
-              day: { $dayOfMonth: "$publicationDate" },
+            $dateTrunc: {
+              date: "$publicationDate",
+              unit: "day",
+              timezone: "America/Argentina/Buenos_Aires",
             },
           },
         },
@@ -305,12 +304,11 @@ exports.getPublicArticles = async (req, res) => {
       },
       { $skip: (page - 1) * pageSize },
       { $limit: pageSize },
-      { $project: { _id: 1 } }, // Only return the ID for now
+      { $project: { _id: 1 } },
     ]);
 
     const orderedIds = sortedIds.map((a) => a._id);
 
-    // 2. Fetch with populate using the already sorted IDs
     const articles = await Article.find({ _id: { $in: orderedIds } })
       .populate("createdBy", "name alias pictureUrl bio")
       .populate("category", "name slug color")
@@ -318,16 +316,29 @@ exports.getPublicArticles = async (req, res) => {
         path: "imageId",
         model: "File",
         select: "fileUrl thumbnailUrl originalName",
-      });
+      })
+      .lean();
 
-    // 3. Reorder according to the original order from the aggregate
     const articlesMap = new Map(articles.map((a) => [a._id.toString(), a]));
     const orderedArticles = orderedIds
       .map((id) => articlesMap.get(id.toString()))
       .filter(Boolean);
 
+    const orderedArticlesAsDocuments = await Article.populate(
+      orderedArticles.map((a) => new Article(a)),
+      [
+        { path: "createdBy", select: "name alias pictureUrl bio" },
+        { path: "category", select: "name slug color" },
+        {
+          path: "imageId",
+          model: "File",
+          select: "fileUrl thumbnailUrl originalName",
+        },
+      ],
+    );
+
     const articlesWithStats = await addInteractionStats(
-      orderedArticles,
+      orderedArticlesAsDocuments,
       req.userId,
     );
 
