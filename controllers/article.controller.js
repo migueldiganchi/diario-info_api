@@ -245,16 +245,17 @@ exports.getPublicArticles = async (req, res) => {
 
   if (title) {
     const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const searchRegex = new RegExp(escapedTitle, "i");
     condition.$or = [
-      { title: { $regex: searchRegex } },
-      { description: { $regex: searchRegex } },
-      { content: { $regex: searchRegex } },
+      { title: { $regex: escapedTitle, $options: "i" } },
+      { description: { $regex: escapedTitle, $options: "i" } }
     ];
   }
 
   if (destination) {
-    condition.destination = destination;
+    condition.destination = {
+      $regex: `^${destination.trim()}$`,
+      $options: "i",
+    };
   }
 
   try {
@@ -287,7 +288,7 @@ exports.getPublicArticles = async (req, res) => {
         $addFields: {
           publicationDay: {
             $dateTrunc: {
-              date: "$publicationDate",
+              date: { $ifNull: ["$publicationDate", "$createdAt"] },
               unit: "day",
               timezone: "America/Argentina/Buenos_Aires",
             },
@@ -308,7 +309,6 @@ exports.getPublicArticles = async (req, res) => {
     ]);
 
     const orderedIds = sortedIds.map((a) => a._id);
-
     const articles = await Article.find({ _id: { $in: orderedIds } })
       .populate("createdBy", "name alias pictureUrl bio")
       .populate("category", "name slug color")
@@ -316,29 +316,15 @@ exports.getPublicArticles = async (req, res) => {
         path: "imageId",
         model: "File",
         select: "fileUrl thumbnailUrl originalName",
-      })
-      .lean();
+      });
 
     const articlesMap = new Map(articles.map((a) => [a._id.toString(), a]));
     const orderedArticles = orderedIds
       .map((id) => articlesMap.get(id.toString()))
       .filter(Boolean);
 
-    const orderedArticlesAsDocuments = await Article.populate(
-      orderedArticles.map((a) => new Article(a)),
-      [
-        { path: "createdBy", select: "name alias pictureUrl bio" },
-        { path: "category", select: "name slug color" },
-        {
-          path: "imageId",
-          model: "File",
-          select: "fileUrl thumbnailUrl originalName",
-        },
-      ],
-    );
-
     const articlesWithStats = await addInteractionStats(
-      orderedArticlesAsDocuments,
+      orderedArticles,
       req.userId,
     );
 
@@ -350,7 +336,7 @@ exports.getPublicArticles = async (req, res) => {
       nextPage,
     });
   } catch (err) {
-    console.error("Error retrieving public articles:", err);
+    console.error("💥 [getPublicArticles] Error:", err);
     res.status(500).send({
       message:
         err.message || "Some error occurred while retrieving public articles.",
